@@ -1,0 +1,93 @@
+SalesforceInteractions.init({
+    cookieDomain: 'abc-demo.cloud',
+    consents: new Promise(resolve => {
+    const { OptIn, OptOut } = SalesforceInteractions.ConsentStatus
+    const purpose = SalesforceInteractions.ConsentPurpose.Tracking
+    const provider = 'Web Cookie Banner'
+    
+    // user clicks button that grants consent
+    document.getElementById('wt-cli-accept-all-btn')
+      .addEventListener(
+        'click', 
+        () => resolve([{ purpose, provider, status: OptIn }]), 
+        { once: true }
+      )
+
+    // user clicks button that revokes consent
+    document.getElementById('wt-cli-privacy-save-btn')
+      .addEventListener(
+        'click', 
+        () => resolve([{ purpose, provider, status: OptOut }]), 
+        { once: true }
+      )
+  }
+  )
+}).then(() => {
+  // set the log level during sitemap development to see potential problems
+  SalesforceInteractions.log.level = 'debug'
+
+  const { 
+    cashDom,
+    listener, 
+    resolvers,
+    sendEvent,
+    util,
+    CartInteractionName,
+    CatalogObjectInteractionName,
+    OrderInteractionName,
+  } = SalesforceInteractions
+
+  const productIdResolver = resolvers.fromSelectorAttribute('.sku')
+  
+  const productPage = {
+    name: 'Product Page',
+    isMatch: () => resolvers.fromMeta("pagetype")()==="PDP",
+    // capture the product being viewed when the page is opened
+    interaction: {
+      name: CatalogObjectInteractionName.ViewCatalogObject,
+      catalogObject: {
+        type: 'Product',
+        id: productIdResolver,
+        attributes: {
+          name: resolvers.fromMeta("og:title")(),
+          url: resolvers.fromHref(),
+          imageUrl: resolvers.fromMeta("og:image")(),
+          categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+        },
+        relatedCatalogObjects: {
+            Brand: () => [resolvers.fromMeta("demo")()],
+            ContentClass: () => [resolvers.fromMeta("content-class")()],
+            ItemClass: () => [resolvers.fromMeta("item")()],
+            Style: () => [resolvers.fromMeta("keywords")().split(",")],
+            Demo: () => [resolvers.fromMeta("demo")()]
+        }
+      }
+    },
+    /* listeners: [
+      // capture when the user adds this product to their cart
+      listener('click', '.add-to-cart', () => {
+        sendEvent({
+          interaction: {
+            name: CartInteractionName.AddToCart,
+            lineItem: {
+              catalogObjectType: 'Product',
+              catalogObjectId: productIdResolver(),
+              quantity: parseInt(cashDom('.input-text .qty text').val(), 10),
+              price: parseFloat(cashDom('.product .price').text().trim())
+            }
+          }
+        })
+      })
+    ] */
+  }
+
+  const pageTypeDefault = {
+    name: 'default'
+  }
+  
+  SalesforceInteractions.initSitemap({
+    global,
+    pageTypeDefault,
+    pageTypes: [productPage]
+  })
+})
