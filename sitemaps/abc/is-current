@@ -1,0 +1,102 @@
+function EvergageInit(){
+Evergage.init({
+    cookieDomain: "abc-demo.cloud"
+}).then(() => {
+
+    const config = {
+        global: {
+
+        },
+        pageTypeDefault: {
+            name: "default"
+        },
+        pageTypes: [
+            {
+                isMatch: () => window.location.pathname === "/",
+                name: "Homepage",
+                action: "Homepage",
+                contentZones: [
+                {
+                    name: "Homepage Hero Banner",
+                    selector: ".is-home-hero"
+                },
+                {
+                    name: "Homepage Recs 1",
+                    selector: ".is-home-recs-1"
+                },
+                {
+                    name: "Homepage Recs 2",
+                    selector: ".is-home-recs-2"
+                },
+                {
+                    name: "Popup",
+                    selector: "#popup"
+                }
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PDP",
+                name: "Product Page",
+                action: "Product Page",
+                catalog: {
+                    Product: {
+                        _id: Evergage.resolvers.fromSelector(".sku")(),
+                        name: Evergage.resolvers.fromMeta("og:title")(),
+                        imageUrl: Evergage.resolvers.fromMeta("og:image")(),
+                        categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+                        price: Evergage.resolvers.fromSelector(".price")().replace(",","."),
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => [Evergage.resolvers.fromMeta("demo")()],
+                            ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
+                            ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
+                            Style: () => [Evergage.resolvers.fromMeta("keywords")().split(",")],
+                            Demo: () => [Evergage.resolvers.fromMeta("demo")()]
+                        }
+                    }
+                },
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PLP",
+                name: "Product Category Page",
+                action: "Product Category Page",
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="Blog",
+                name: "Blog Page",
+                action: "Blog Page",
+                catalog: {
+                    Blog: {
+                        _id: window.location.pathname.split("/")[5],
+                        name: Evergage.resolvers.fromMeta("og:title")(),
+                       imageUrl: Evergage.resolvers.fromMeta("og:image")(),
+                       categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => [Evergage.resolvers.fromMeta("demo")()],
+                            ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
+                            ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
+                          Style: () => [Evergage.resolvers.fromMeta("keywords")()],
+                            Demo: () => [Evergage.resolvers.fromMeta("demo")()]
+                        }
+                    }
+                },
+            },
+            {
+                isMatch: () => /\/category\/blog\/*/.test(window.location.pathname),
+                name: "Blog Category Page",
+                action: "Blog Category Page",
+            },
+            {
+                isMatch: () => true,
+                name: "Unknown Page",
+                action: "Unknown Page View"
+            }
+
+        ]
+    };
+
+    Evergage.initSitemap(config);
+});
+}
+EvergageInit();
