@@ -1,0 +1,25 @@
+{
+	"action": "Purchase",
+	"user": {
+		"id": "8b61f7e4e100bb424225490f"
+    },
+    "order": {
+        "Product": {
+            "orderId": "109855250",
+            "totalValue": 1020.00,
+            "currency": "EUR",
+            "lineItems": [
+		            	{
+		            	"_id": "GM0217",
+		                "price": 900.00,
+		                "quantity": 10
+		                },
+                        {
+		            	"_id": "GS2454",
+		                "price": 40.00,
+		                "quantity": 3
+		                }
+            ]
+        }
+    }
+}
