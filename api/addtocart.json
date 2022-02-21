@@ -1,0 +1,17 @@
+{
+	"action": "Add to Cart",
+	"user": {
+		"id": "5161f799e0edf90b11ced1b2"
+    },
+    "cart": {
+        "Product": {
+            "lineItems": [
+		            	{
+		            	"_id": "GM0217",
+		                "price": 900.00,
+		                "quantity": 10
+		                }
+            ]
+        }
+    }
+}
