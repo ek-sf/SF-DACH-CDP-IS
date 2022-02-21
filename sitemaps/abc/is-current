@@ -31,13 +31,17 @@ Evergage.init({
                 {
                     name: "Popup",
                     selector: "#popup"
-                }
+                },
+                {
+                    name: "Survey",
+                    selector: "#survey"
+                },
                 ]
             },
             {
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PDP",
-                name: "Product Page",
-                action: "Product Page",
+                name: "Product " + Evergage.resolvers.fromMeta("brand")(),
+                action: "Product " + Evergage.resolvers.fromMeta("brand")(),
                 catalog: {
                     Product: {
                         _id: Evergage.resolvers.fromSelector(".sku")(),
@@ -47,19 +51,109 @@ Evergage.init({
                         price: Evergage.resolvers.fromSelector(".price")().replace(",","."),
                         url: window.location.href,
                         dimensions: {
-                            Brand: () => [Evergage.resolvers.fromMeta("demo")()],
+                            Brand: () => [Evergage.resolvers.fromMeta("brand")()],
                             ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
                             ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
-                            Style: () => [Evergage.resolvers.fromMeta("keywords")().split(",")],
+                            Style: () => Evergage.resolvers.fromMeta("keywords")().split(","),
                             Demo: () => [Evergage.resolvers.fromMeta("demo")()]
+                        }
+                    }
+                },
+                contentZones: [
+                    {
+                        name: "Product Similar Items",
+                        selector: ".related.products"
+                    },
+                ],
+                listeners: [
+                    Evergage.listener("click", ".single_add_to_cart_button", () => {
+                        const lineItem = Evergage.util.buildLineItemFromPageState(".input-text.qty.text");
+                        lineItem.sku = { _id: Evergage.resolvers.fromSelector(".sku")() };
+                        Evergage.sendEvent({
+                            action: "Add to Cart",
+                            itemAction: Evergage.ItemAction.AddToCart,
+                            cart: {
+                                singleLine: {
+                                    Product: lineItem
+                                }
+                            }
+                        });
+                    }),
+                ]
+            },
+            {
+                name: "Cart",
+                action: "Viewed Cart",
+                isMatch: ()=>/\/basket/.test(window.location.href),
+                itemAction: Evergage.ItemAction.ViewCart,
+                catalog: {
+                    Product: {
+                        lineItems: {
+                            _id: ()=> Evergage.resolvers.fromSelectorAttributeMultiple("td.product-remove > a", "data-product_sku")(),
+                            price: ()=> Evergage.resolvers.fromSelectorMultiple("tr.woocommerce-cart-form__cart-item.cart_item > td.product-subtotal > span")(),
+                            quantity: ()=> Evergage.resolvers.fromSelectorAttributeMultiple(".input-text.qty.text","value")()
                         }
                     }
                 },
             },
             {
+                name: "Purchase",
+                action: "Purchase",
+                isMatch: ()=>/\/checkout\/order-received/.test(window.location.href),
+                itemAction: Evergage.ItemAction.Purchase,
+                catalog: {
+                    Product: {
+                            orderId: window.location.pathname.split("/")[3],
+                        lineItems: {
+                            _id: () => {
+                                return Evergage.DisplayUtils.pageElementLoaded(".woocommerce-table__product-name.product-name > .wc-item-meta p", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple(".woocommerce-table__product-name.product-name > .wc-item-meta p");
+                                });
+                            },
+                            price:  () => {
+                                return Evergage.DisplayUtils.pageElementLoaded("td.woocommerce-table__product-total.product-total > span > bdi", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple("td.woocommerce-table__product-total.product-total > span > bdi");
+                                });
+                            },
+                            quantity:  () => {
+                                return Evergage.DisplayUtils.pageElementLoaded(".product-quantity", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple(".product-quantity");
+                                });
+                            },
+                        }
+                        //    totalValue: Evergage.resolvers.fromSelector("#post-44 > div.entry-content > div > div > ul > li.woocommerce-order-overview__total.total > strong > span > bdi")(),
+                        //  currency: "EUR"
+                    }
+                }
+            },
+            {
+                name: "Checkout Page",
+                action: "Checkout Page",
+                isMatch: ()=>/\/checkout/.test(window.location.href),
+            },
+            {
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PLP",
-                name: "Product Category Page",
-                action: "Product Category Page",
+                name: "Product Category " + Evergage.resolvers.fromSelector(".woocommerce-products-header__title")(),
+                action: "Product Category " + Evergage.resolvers.fromSelector(".woocommerce-products-header__title")(),
+            },
+           {
+                name: "Login Page",
+                action: "Login Page",
+                isMatch: () => Evergage.resolvers.fromMeta("og:title")() === "My account",
+                listeners: [
+                    Evergage.listener("click", ".woocommerce-form-login__submit", () => {
+                        const email = Evergage.cashDom("#username").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "Logged In",  user: {attributes: {emailAddress:  email}}});
+                        }
+                    }),
+                        Evergage.listener("click", ".woocommerce-form-register__submit", () => {
+                        const newemail = Evergage.cashDom("#reg_email").val();
+                        if (newemail) {
+                            Evergage.sendEvent({ action: "User Registered",  user: {attributes: {emailAddress:  email}}});
+                        }
+                    })
+                ]
             },
             {
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="Blog",
@@ -76,7 +170,7 @@ Evergage.init({
                             Brand: () => [Evergage.resolvers.fromMeta("demo")()],
                             ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
                             ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
-                          Style: () => [Evergage.resolvers.fromMeta("keywords")()],
+                            Style: () => [Evergage.resolvers.fromMeta("keywords")()],
                             Demo: () => [Evergage.resolvers.fromMeta("demo")()]
                         }
                     }
@@ -86,6 +180,25 @@ Evergage.init({
                 isMatch: () => /\/category\/blog\/*/.test(window.location.pathname),
                 name: "Blog Category Page",
                 action: "Blog Category Page",
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="Newsletter",
+                name: "Newsletter",
+                action: "Newsletter",
+                listeners: [
+                    Evergage.listener("click", ".newsletter-sign-up", () => {
+                        const email = Evergage.cashDom("#email").val();
+                        const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, username: user_name}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="FAQ",
+                name: "FAQ",
+                action: "FAQ",
             },
             {
                 isMatch: () => true,
