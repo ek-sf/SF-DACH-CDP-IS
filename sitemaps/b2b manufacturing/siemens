@@ -1,0 +1,131 @@
+Evergage.cashDom("div.introduction__content").after('<div id="evg-banner" style="margin-top: 20px;"></div>');
+Evergage.cashDom("body").append('<div id="evg-dummy1"></div><div id="evg-dummy2"></div>');
+
+Evergage.init({
+    cookieDomain: "siemens.com"
+}).then(() => {
+    
+    const config = {
+        global: {
+            contentZones: [
+                {
+                    name: "INVISIBLE_1",
+                    selector: "#evg-dummy1"
+                },
+                {
+                    name: "INVISIBLE_2",
+                    selector: "#evg-dummy2"
+                },
+                {
+                        name: "Exit Pop Up",
+                        selector: ".root"
+                },
+            ]
+        },
+        pageTypeDefault: {
+            name: "default"
+        },
+        pageTypes: [
+            {
+                isMatch: () => window.location.href === "https://www.siemens.com/global/en.html",
+                name: "Siemens.com Homepage",
+                action: "Siemens.com Homepage View",
+                contentZones: [
+                {
+                    name: "home_banner",
+                    selector: "#main > div:nth-child(2) > div > div"
+                },
+                {
+                    name: "home_recs",
+                    selector: "#main > div:nth-child(3) > div"
+                },
+                {
+                    name: "home_recs2",
+                    selector: "#main > div:nth-child(4) > div"
+                },
+                {
+                    name: "home_popup",
+                    selector: ".c-pageFooter__bottom"
+                    
+                },
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname.includes("markets"),
+                name: "Market Specific Solution",
+                action: "Market Specific Solution View",
+                catalog: {
+                    Blog: {
+                        _id: () => document.title.split("|")[0].trim(),
+                        name: () => document.title.split("|")[0].trim(),
+                        description: Evergage.resolvers.fromMeta("og:description"),
+                        imageUrl: Evergage.resolvers.fromMeta("og:image"),
+                        categories: Evergage.resolvers.buildCategoryId('.breadcrumb__list > a.link', 0, false, (categoryId) => [categoryId.toUpperCase()]),
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => [Evergage.resolvers.fromSelector("nav > div > ol > li:nth-child(3) > a > span")().trim()]
+                        }
+                    }
+                },
+                contentZones: [
+                    {
+                        selector: "#evg-banner",
+                        name: "market_banner"
+                    },
+                    {
+                        selector: ".root.responsivegrid",
+                        name: "market_recs"
+                    },
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("template")() === "siemens-product-page",
+                name: "Product Detail Page",
+                action: "Product View",
+                catalog: {
+                    Product: {
+                        _id: () => document.title.split("|")[0].trim(),
+                        name: () => document.title.split("|")[0].trim(),
+                        description: Evergage.resolvers.fromMeta("og:description"),
+                        imageUrl: Evergage.resolvers.fromMeta("og:image"),
+                        price:  1,
+                        url: window.location.href,
+                        categories: Evergage.resolvers.buildCategoryId('.breadcrumb__list > a.link', 0, true, (categoryId) => [categoryId.toUpperCase()]),
+                        dimensions: {
+                            ItemClass: () => [document.title.split("|")[1].trim()],
+                            Style: () => Evergage.resolvers.fromMeta("searchRecommendationKeywords")().split(",")
+                        } 
+                    },
+                },
+                listeners: [
+                    Evergage.listener("click", "#main-content > div:nth-child(2) > section > div > div > div > div.introduction__content.introduction__content--withMedia > div.conversionbutton.conversionbutton--bottom.conversionbutton--posCalculated > div > div > a", () => {
+                        Evergage.sendEvent({
+                            action: "Product Contact Interest",
+                            user: {
+                                attributes: {
+                                    ProductInterest: document.title.split("|")[0].trim(),
+                                }
+                            },
+                            account: {
+                                attributes: {
+                                    ProductAccountInterest: document.title.split("|")[0].trim(),
+                                }
+                            },
+                        });
+                    })
+                ],
+                onActionEvent: (event) => {
+                    return event;
+                },
+            },
+            {
+                isMatch: () => true,
+                name: "Unknown Page",
+                action: "Unknown Page View"
+            }
+
+        ]
+    };
+
+    Evergage.initSitemap(config);
+});
