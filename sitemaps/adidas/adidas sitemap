@@ -1,0 +1,139 @@
+function EvergageInit(){
+Evergage.init({
+    cookieDomain: "www.adidas.de"
+}).then(() => {
+
+var evgHelpers = {
+    ProductPage: function(){
+      return Evergage.resolvers.fromJsonLd("@type")() === "Product" === true;
+    }
+}
+    const config = {
+        global: {
+         /*   onActionEvent: (actionEvent) => {
+                const email = "ekdemo73+ar@gmail.com";
+                        actionEvent.user = actionEvent.user || {};
+                        actionEvent.user.attributes = actionEvent.user.attributes || {};
+                        actionEvent.user.id = email;
+                        actionEvent.user.attributes.emailAddress = email;
+                    return actionEvent;
+            } */
+        },
+        pageTypeDefault: {
+            name: "default"
+        },
+        pageTypes: [
+            {
+                isMatch: () => window.location.pathname === "/en",
+                name: "Adidas Homepage",
+                action: "Adidas Homepage",
+                contentZones: [
+                { 
+                    name: "masthead",
+                //    selector: "#app > div > div:nth-child(1) > div > div > div > div.main___3cBug.has_usp___1zXsg > div:nth-child(3)"
+                selector: "#app > div > div:nth-child(1) > div > div > div > div.main___3cBug.has_usp___1zXsg > div:nth-child(3) > section"
+                },
+                {
+                    name: "Homepage Recs 1",
+                    selector: "#app > div > div:nth-child(1) > div > div > div > div.main___3cBug.has_usp___1zXsg > div:nth-child(7) > section > div > div"
+                },
+                {
+                    name: "Homepage Recs 2",
+                    selector: "#app > div > div:nth-child(1) > div > div > div > div.main___3cBug.has_usp___1zXsg > div:nth-child(8) > section > div"
+                },
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "Homepage Sub Hero",
+                    selector: "#app > div > div:nth-child(1) > div > div > div > div.main___3cBug.has_usp___1zXsg > div:nth-child(7) > section > div > div.cards-wrapper___2i0Yt"
+                }
+                ]
+            },
+            {
+                isMatch: () => evgHelpers.ProductPage(),
+                name: "PDP View",
+                action: "PDP View",
+                 catalog: {
+                    Product: {
+                        _id: Evergage.resolvers.fromJsonLd("sku"),
+                        name: Evergage.resolvers.fromJsonLd("name"),
+                        description: Evergage.resolvers.fromMeta("description"),
+                        imageUrl: Evergage.resolvers.fromMeta("og:image"),
+                       categories: () => [Evergage.resolvers.fromSelectorMultiple(".breadcrumb_item___3Stvw")()[2].replace("/","")+"|"+Evergage.resolvers.fromSelectorMultiple(".breadcrumb_item___3Stvw")()[3].replace("/","")],
+                       // price: Evergage.resolvers.fromJsonLd("price"),
+                        price: Evergage.resolvers.fromSelector(".gl-price-item"),
+                        url: Evergage.resolvers.fromMeta("og:url"),
+                        dimensions: {
+                            ItemClass: [Evergage.resolvers.fromSelector("div.pre-header___2xlx4 > div")()],
+                            Gender: () => [Evergage.resolvers.fromSelectorMultiple(".breadcrumb_item___3Stvw")()[2].replace("/","")],
+                            Brand: [Evergage.resolvers.fromMeta("keywords")()],
+                            Color: [Evergage.resolvers.fromJsonLd("color")()]
+                        },
+                    }
+                 },
+                listeners: [Evergage.listener("click", ".sizes___3Stmf.gl-vspace > button", () => {
+                            const selected_size = Evergage.resolvers.fromSelector("button.gl-label.size___TqqSo.gl-label--bold.selected___2CqxQ")();
+                            const item_id = Evergage.resolvers.fromJsonLd("sku")();
+                            Evergage.sendEvent({
+                                action: "PDP Size Select",
+                                itemAction: Evergage.ItemAction.ViewItemDetail,
+                                
+                                    catalog: {
+                                        Product: {
+                                        _id: item_id,
+                                        relatedCatalogObjects: {
+                                            Style: [selected_size]
+                                        }
+                                    }
+                                },
+                            })
+                }
+                )],
+                contentZones: [
+                {
+                    name: "PDP Recs",
+                    selector: ".product-page-layout"
+                }
+                ] 
+            },
+            {
+                isMatch: () => true,
+                name: "Unknown Page",
+                action: "Unknown Page View"
+            },
+            {
+                isMatch: () => window.location.pathname === "/en/cart",
+                name: "Cart Page",
+                action: "Cart View",
+                contentZones: [
+                {
+                    name: "Cart Coupon",
+                    selector: "#cart-coupon"
+                }
+                ] 
+            }
+
+        ]
+    };
+    Evergage.initSitemap(config);
+});
+}
+// EvergageInit();
+var evgCurrentUrl = '';
+var evgIterator = 0;
+
+var evgUrlTimer = setInterval(_ => {
+    if(window.location.href !== evgCurrentUrl){
+        if(evgIterator++ < (evgCurrentUrl ? 10 : 20)){
+            console.log("SPA page refresh. Waiting for the url to stabilize..." + evgIterator);
+        }
+        else{
+            evgIterator = 0;
+            evgCurrentUrl = window.location.href;
+            EvergageInit();
+            console.log("SPA page refresh. Reinitializing IS...");
+        }
+    }
+}, 100);
