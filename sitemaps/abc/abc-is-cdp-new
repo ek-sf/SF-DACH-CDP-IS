@@ -1,93 +1,66 @@
 SalesforceInteractions.init({
-    cookieDomain: 'abc-demo.cloud',
-    consents: new Promise(resolve => {
-    const { OptIn, OptOut } = SalesforceInteractions.ConsentStatus
-    const purpose = SalesforceInteractions.ConsentPurpose.Tracking
-    const provider = 'Web Cookie Banner'
-    
-    // user clicks button that grants consent
-    document.getElementById('wt-cli-accept-all-btn')
-      .addEventListener(
-        'click', 
-        () => resolve([{ purpose, provider, status: OptIn }]), 
-        { once: true }
-      )
-
-    // user clicks button that revokes consent
-    document.getElementById('wt-cli-privacy-save-btn')
-      .addEventListener(
-        'click', 
-        () => resolve([{ purpose, provider, status: OptOut }]), 
-        { once: true }
-      )
-  }
-  )
+    cookieDomain: "abc-demo.cloud",
 }).then(() => {
-  // set the log level during sitemap development to see potential problems
-  SalesforceInteractions.log.level = 'debug'
-
-  const { 
-    cashDom,
-    listener, 
-    resolvers,
-    sendEvent,
-    util,
-    CartInteractionName,
-    CatalogObjectInteractionName,
-    OrderInteractionName,
-  } = SalesforceInteractions
-
-  const productIdResolver = resolvers.fromSelectorAttribute('.sku')
-  
-  const productPage = {
-    name: 'Product Page',
-    isMatch: () => resolvers.fromMeta("pagetype")()==="PDP",
-    // capture the product being viewed when the page is opened
-    interaction: {
-      name: CatalogObjectInteractionName.ViewCatalogObject,
-      catalogObject: {
-        type: 'Product',
-        id: productIdResolver,
-        attributes: {
-          name: resolvers.fromMeta("og:title")(),
-          url: resolvers.fromHref(),
-          imageUrl: resolvers.fromMeta("og:image")(),
-          categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+    const sitemapConfig = {
+        global: {    },
+        pageTypeDefault: {
+            name:"default",
+            interaction:{name:"Default"}
         },
-        relatedCatalogObjects: {
-            Brand: () => [resolvers.fromMeta("demo")()],
-            ContentClass: () => [resolvers.fromMeta("content-class")()],
-            ItemClass: () => [resolvers.fromMeta("item")()],
-            Style: () => [resolvers.fromMeta("keywords")().split(",")],
-            Demo: () => [resolvers.fromMeta("demo")()]
-        }
-      }
-    },
-    /* listeners: [
-      // capture when the user adds this product to their cart
-      listener('click', '.add-to-cart', () => {
-        sendEvent({
-          interaction: {
-            name: CartInteractionName.AddToCart,
-            lineItem: {
-              catalogObjectType: 'Product',
-              catalogObjectId: productIdResolver(),
-              quantity: parseInt(cashDom('.input-text .qty text').val(), 10),
-              price: parseFloat(cashDom('.product .price').text().trim())
+        pageTypes: [
+            {
+                name: "Homepage",   
+                isMatch: () => window.location.pathname === "/",
+                interaction: {
+                    name: "Homepage"
+                },
+                contentZones: [
+                {name: "Homepage Hero Banner",selector: ".is-home-hero"},
+                {name: "Homepage Recs 1",selector: ".is-home-recs-1"},
+                {name: "Homepage Recs 2",selector: ".is-home-recs-2"},
+                {name: "Popup",selector: "#popup"},
+                {name: "Survey",selector: "#survey"},
+                ]
+            },
+           /* {
+                name: "Product Category",
+                isMatch: () => SalesforceInteractions.resolvers.fromMeta("pagetype")()==="PLP",
+                interaction: {
+                    name: "Product Category",
+                    catalogObject: {
+                        type: "Category",
+                        id: SalesforceInteractions.DisplayUtils.pageElementLoaded(".breadcrumb .breadcrumb-item a", "html").then((ele) => {
+                            return SalesforceInteractions.resolvers.buildCategoryId(".breadcrumb .breadcrumb-item a", 1, null, (categoryId) => categoryId.toUpperCase());
+                        })
+                    }
+                }
+            }, */
+            {
+                name: "Product Detail",
+                isMatch: () => SalesforceInteractions.resolvers.fromMeta("pagetype")()==="PDP",
+                interaction: {
+                    name: SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject,
+                    catalogObject: {
+                        type: "Product",
+                        id: SalesforceInteractions.resolvers.fromSelector(".sku"),
+                        attributes: {
+                            name: SalesforceInteractions.resolvers.fromMeta("og:title"),
+                            imageUrl: SalesforceInteractions.resolvers.fromMeta("og:image"),
+                            price: SalesforceInteractions.resolvers.fromSelector(".price"),
+                            url: window.location.href,
+                    },
+                    relatedCatalogObjects: {
+                    //    Category: () => [SalesforceInteractions.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)],
+                       // Brand: "Bka",
+                    /*    ContentClass: () => [SalesforceInteractions.resolvers.fromMeta("content-class")()],
+                        ItemClass: () => [SalesforceInteractions.resolvers.fromMeta("item")()],
+                        Style: () => SalesforceInteractions.resolvers.fromMeta("keywords")().split(","),
+                        Demo: () => [SalesforceInteractions.resolvers.fromMeta("demo")()] */
+                    }
+                }
             }
-          }
-        })
-      })
-    ] */
-  }
-
-  const pageTypeDefault = {
-    name: 'default'
-  }
-  
-  SalesforceInteractions.initSitemap({
-    global,
-    pageTypeDefault,
-    pageTypes: [productPage]
-  })
-})
+            }
+        ]
+    };
+    SalesforceInteractions.initSitemap(sitemapConfig);
+});
