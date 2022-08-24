@@ -5,7 +5,12 @@ Evergage.init({
 
     const config = {
         global: {
-
+            contentZones: [
+                {
+                    name: "Web Brand Logo",
+                    selector: ".site-branding"
+                }
+                ]
         },
         pageTypeDefault: {
             name: "default"
@@ -16,6 +21,10 @@ Evergage.init({
                 name: "Homepage",
                 action: "Homepage",
                 contentZones: [
+                {
+                    name: "Homepage Title",
+                    selector: ".entry-title"
+                },
                 {
                     name: "Homepage Hero Banner",
                     selector: ".is-home-hero"
@@ -40,8 +49,8 @@ Evergage.init({
             },
             {
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PDP",
-                name: "Product " + Evergage.resolvers.fromMeta("brand")(),
-                action: "Product " + Evergage.resolvers.fromMeta("brand")(),
+                name: "Product",
+                action: "Product",
                 catalog: {
                     Product: {
                         _id: Evergage.resolvers.fromSelector(".sku")(),
@@ -66,6 +75,27 @@ Evergage.init({
                     },
                 ],
                 listeners: [
+                            Evergage.listener("click", "button[name='quick_buy']", () => {
+                                Evergage.sendEvent({
+                                    itemAction: Evergage.ItemAction.Purchase,
+                                    action: "Purchase",
+                                    order: {
+                                        Product: {
+                                            orderId: new Date().getTime(),
+                                            totalValue: Evergage.resolvers.fromSelectorAttribute("input[name='gtm4wp_price']","value")(),
+                                            lineItems: [
+                                                {
+                                                	_id: Evergage.resolvers.fromSelector(".sku")(),
+                                                	quantity: Evergage.resolvers.fromSelectorAttribute(".input-text.qty.text","value")(),
+                                                	price: Evergage.resolvers.fromSelectorAttribute("input[name='gtm4wp_price']","value")()
+                                                }                                            
+                                            ]
+                                        }
+                                    }
+                                });
+                            })
+                ],
+            /*   Add to Cart listener: 
                     Evergage.listener("click", ".single_add_to_cart_button", () => {
                         const lineItem = Evergage.util.buildLineItemFromPageState(".input-text.qty.text");
                         lineItem.sku = { _id: Evergage.resolvers.fromSelector(".sku")() };
@@ -79,7 +109,7 @@ Evergage.init({
                             }
                         });
                     }),
-                ]
+                    */
             },
             {
                 name: "Cart",
@@ -133,8 +163,8 @@ Evergage.init({
             },
             {
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PLP",
-                name: "Product Category " + Evergage.resolvers.fromSelector(".woocommerce-products-header__title")(),
-                action: "Product Category " + Evergage.resolvers.fromSelector(".woocommerce-products-header__title")(),
+                name: "Product Category",
+                action: "Product Category",
             },
            {
                 name: "Login Page",
@@ -186,11 +216,39 @@ Evergage.init({
                 name: "Newsletter",
                 action: "Newsletter",
                 listeners: [
-                    Evergage.listener("click", ".newsletter-sign-up", () => {
+                    Evergage.listener("click", ".is-sign-up", () => {
                         const email = Evergage.cashDom("#email").val();
                         const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
                         if (email) {
-                            Evergage.sendEvent({ action: "Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, username: user_name}}});
+                            Evergage.sendEvent({ action: "Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, userName: user_name}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname === '/abc-auto-newsletter/',
+                name: "Newsletter Auto",
+                action: "Newsletter Auto",
+                listeners: [
+                    Evergage.listener("click", ".is-sign-up", () => {
+                        const email = Evergage.cashDom("#email").val();
+                        const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "ABC Auto Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, userName: user_name}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname === '/abc-comms-newsletter/',
+                name: "Newsletter Comms",
+                action: "Newsletter Comms",
+                listeners: [
+                    Evergage.listener("click", ".is-sign-up", () => {
+                        const email = Evergage.cashDom("#email").val();
+                        const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "ABC Comms Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, userName: user_name}}});
                         }
                     })
                 ]
@@ -199,6 +257,22 @@ Evergage.init({
                 isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="FAQ",
                 name: "FAQ",
                 action: "FAQ",
+                contentZones: [
+                {
+                    name: "FAQ Banner",
+                    selector: ".content-area"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname === "/thank-you/",
+                name: "Verify your Email",
+                action: "Verify your Email",
+            },
+            {
+                isMatch: () => window.location.pathname === "/thank-you-2/",
+                name: "Double Opt-In Email",
+                action: "Double Opt-In Email",
             },
             {
                 isMatch: () => true,
