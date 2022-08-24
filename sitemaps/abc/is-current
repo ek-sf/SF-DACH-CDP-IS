@@ -93,23 +93,21 @@ Evergage.init({
                                         }
                                     }
                                 });
-                            })
+                            }),
+                            Evergage.listener("click", ".single_add_to_cart_button", () => {
+                                const lineItem = Evergage.util.buildLineItemFromPageState(".input-text.qty.text");
+                                lineItem.sku = { _id: Evergage.resolvers.fromSelector(".sku")() };
+                                Evergage.sendEvent({
+                                    action: "Add to Cart",
+                                    itemAction: Evergage.ItemAction.AddToCart,
+                                    cart: {
+                                        singleLine: {
+                                            Product: lineItem
+                                        }
+                                    }
+                                });
+                            }),
                 ],
-            /*   Add to Cart listener: 
-                    Evergage.listener("click", ".single_add_to_cart_button", () => {
-                        const lineItem = Evergage.util.buildLineItemFromPageState(".input-text.qty.text");
-                        lineItem.sku = { _id: Evergage.resolvers.fromSelector(".sku")() };
-                        Evergage.sendEvent({
-                            action: "Add to Cart",
-                            itemAction: Evergage.ItemAction.AddToCart,
-                            cart: {
-                                singleLine: {
-                                    Product: lineItem
-                                }
-                            }
-                        });
-                    }),
-                    */
             },
             {
                 name: "Cart",
