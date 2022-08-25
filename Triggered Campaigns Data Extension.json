@@ -1,0 +1,280 @@
+{
+    "id": "51da5b68-7b4b-4bc2-92c9-3fd35ccd61a8",
+    "name": "Triggered Campaigns Data Extension",
+    "version": 1,
+    "appVersion": "9.3.2",
+    "references": {
+        "dataExtensions/477f4bed-1da1-ec11-ba36-d4f5ef3de2b5": [
+            "categories/509296"
+        ],
+        "categories/509296": []
+    },
+    "input": [],
+    "config": {
+        "preserveCategories": false
+    },
+    "entities": {
+        "assets": {},
+        "categories": {
+            "509296": {
+                "issues": [],
+                "originID": "509296",
+                "originEID": "",
+                "data": {
+                    "description": "",
+                    "categoryType": "dataextension",
+                    "parentId": 0,
+                    "name": "Data Extensions",
+                    "editable": 0,
+                    "extendable": 1
+                }
+            }
+        },
+        "cloudPageCollections": {},
+        "dataExtensions": {
+            "477f4bed-1da1-ec11-ba36-d4f5ef3de2b5": {
+                "issues": [],
+                "originID": "477f4bed-1da1-ec11-ba36-d4f5ef3de2b5",
+                "originEID": "",
+                "data": {
+                    "categoryId": "{{mcpm#/entities/categories/509296/data/id}}",
+                    "dataRetentionProperties": {
+                        "isDeleteAtEndOfRetentionPeriod": false,
+                        "isResetRetentionPeriodOnImport": false,
+                        "isRowBasedRetention": false,
+                        "rowBasedThreshold": 100000000
+                    },
+                    "description": "",
+                    "isFieldAdditionAllowed": true,
+                    "isFieldModificationAllowed": true,
+                    "isObjectDeletable": true,
+                    "isSendable": true,
+                    "isTestable": false,
+                    "name": "IS_Triggers",
+                    "sendableCustomObjectField": "ContactKey",
+                    "sendableSubscriberField": "_SubscriberKey",
+                    "fields": [
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "ContactKey",
+                            "ordinal": 0,
+                            "type": "Text"
+                        },
+                        {
+                            "defaultValue": "GetDate()",
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Trigger_Timestamp",
+                            "ordinal": 1,
+                            "type": "Date"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Trigger_Type",
+                            "ordinal": 2,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Trigger_Segment",
+                            "ordinal": 3,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Trigger_Action",
+                            "ordinal": 4,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 4000,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Trigger_Catalog_Items",
+                            "ordinal": 5,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Campaign",
+                            "ordinal": 6,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 50,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Experience",
+                            "ordinal": 7,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 500,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Segments",
+                            "ordinal": 8,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 4000,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Recommendations",
+                            "ordinal": 9,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 4000,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "Additional_Recommendations",
+                            "ordinal": 10,
+                            "type": "Text"
+                        },
+                        {
+                            "description": "",
+                            "isHidden": false,
+                            "isInheritable": false,
+                            "isOverridable": false,
+                            "isPrimaryKey": false,
+                            "isNullable": true,
+                            "isReadOnly": false,
+                            "isTemplateField": false,
+                            "length": 254,
+                            "masktype": "None",
+                            "mustOverride": false,
+                            "name": "emailAddress",
+                            "ordinal": 11,
+                            "type": "EmailAddress"
+                        }
+                    ]
+                }
+            }
+        },
+        "eventDefinitions": {},
+        "journeys": {},
+        "attributeGroups": {},
+        "automations": {},
+        "scriptActivities": {},
+        "sendDefinitions": {},
+        "dataFilterDefinitions": {},
+        "dataFilters": {},
+        "queryActivities": {},
+        "fileTransferActivities": {},
+        "importActivities": {},
+        "dataExtractActivities": {},
+        "verificationActivities": {},
+        "codeResources": {},
+        "landingPages": {},
+        "primaryLandingPages": {}
+    },
+    "selectedEntities": {
+        "assets": [],
+        "cloudPageCollections": [],
+        "dataExtensions": [
+            "477f4bed-1da1-ec11-ba36-d4f5ef3de2b5"
+        ],
+        "journeys": [],
+        "attributeGroups": [],
+        "automations": []
+    }
+}
