@@ -1,0 +1,1055 @@
+var evgr = Evergage.resolvers;
+    function calcBlogId() {
+        let blogId = window.location.pathname.match(/blog\/posts\/[^\/]+\/([^.]+)\.html/);
+        if (blogId.length === 2) {
+            return blogId[1].toUpperCase();
+        }
+        return null;
+    }
+
+    function returnBlogCatDim() {
+        let categories = [];
+        Evergage.cashDom("div.blogcategory ul li div span a").each((idx,el)=>{
+            categories.push(Evergage.cashDom(el).text().trim().replace(/,$/, ''));
+        }
+        );
+        categories = categories.filter(function(category) {
+            return !industryCategoryList[category];
+        });
+        return categories;
+    }
+
+    function returnInduDim() {
+        let categories = [];
+        Evergage.cashDom("div.blogcategory ul li").each((idx,el)=>{
+            categories.push(Evergage.cashDom(el).text().trim().replace(/,$/, ''));
+        }
+        );
+        categories = categories.filter(function(category) {
+            return industryCategoryList[category];
+        });
+        return categories;
+    }
+
+    var industryCategoryList = {
+        "Manufacturing": true,
+        "Transportation and Logistics": true,
+        "Warehouse Management": true,
+        "Retail": true,
+        "Healthcare": true,
+        "Government": true,
+        "Field Services": true,
+        "Sports": true,
+        "Hospitality": true
+    }
+
+    var regionDict = {
+        us: "en_US",
+        gb: "en_GB",
+        de: "de_DE",
+        cn: "zh_CN",
+        tr: "tr_TR",
+        fr: "fr_FR",
+        pl: "pl_PL",
+        ru: "ru_RU",
+        jp: "ja_JP",
+        kr: "ko_KR",
+        la: "es_LA",
+        es: "es_ES",
+        br: "pt_BR",
+        ap: "en_AP"
+    };
+
+    function toLocale(str) {
+        str = (str || "").toLowerCase();
+        if (str.length === 2) {
+            return regionDict[str] || null;
+        } else if (str.length === 5) {
+            var language = str[0] + str[1];
+            var region = str[3] + str[4];
+            if (regionDict[language]) {
+                return region + "_" + language.toUpperCase();
+            } else if (regionDict[region]) {
+                return language + "_" + region.toUpperCase();
+            }
+        }
+        return null;
+    }
+
+    function returnLocale() {
+        var currentPageLocale;
+        if (window.location.hostname === "www.zebra.com") {
+            currentPageLocale = toLocale(Evergage.util.extractFirstGroup(/^\/([a-zA-Z]{2}\/[a-zA-Z]{2})/, window.location.pathname))
+        } else if (window.location.hostname === "partnerportal.zebra.com") {
+            currentPageLocale = regionDict.us;
+        } else if (window.location.hostname === "connect.zebra.com") {
+            currentPageLocale = toLocale(Evergage.util.extractFirstGroup(/^\/[^_]+([a-zA-Z]{2}?[a-zA-Z]?[a-zA-Z]?)/, window.location.pathname));
+        }
+
+        return currentPageLocale;
+    }
+
+    function waitForDomReady() {
+        return new Promise((resolve,reject)=>{
+            const timeout = window.setTimeout(()=>{
+                resolve(false)
+            }
+            , 1500);
+            const domReady = ()=>{
+                clearTimeout(timeout);
+                resolve(true);
+            }
+            ;
+            if (document.readyState === "complete" || document.readyState === "interactive") {
+                domReady();
+            } else {
+                window.addEventListener("DOMContentLoaded", domReady);
+            }
+        }
+        );
+    }
+
+    var allowedDomains = ["www.zebra.com", "partnerportal.zebra.com", "connect.zebra.com"//"any other sub domain we need, other than the dev site"
+    ];
+
+    (allowedDomains.indexOf(window.location.hostname) >= 0) && Evergage.init({
+        cookieDomain: "zebra.com"
+    }).then(()=>{
+
+        const buildLocale = ()=>{
+            let locale = returnLocale();
+            return locale;
+        }
+
+        const sitemapConfig = {
+            global: {
+
+                locale: buildLocale(),
+
+                //START DEMANDBASE / TORCH INTEGRATION
+                onActionEvent: (actionEvent)=>{
+                    try {
+                        var params = new URLSearchParams(document.location.search)
+                          , db = JSON.parse(sessionStorage.getItem("LAUNCH_demandbaseInfo")) || {}
+                          , fields = {
+                            Demandbase_Audience: db.audience,
+                            Demandbase_CompanyName: db.company_name,
+                            Demandbase_EmployeeRange: db.employee_range,
+                            Demandbase_Industry: db.industry,
+                            Demandbase_RevenueRange: db.revenue_range,
+                            Demandbase_SubIndustry: db.sub_industry,
+                            Demandbase_ZIP: db.zip,
+                            Demandbase_Country: db.country,
+                            Demandbase_City: db.city,
+                            Demandbase_State: db.state,
+                            Demandbase_Region: db.region_name,
+                            utmTacticDetail: params.get("tactic_detail"),
+                            utmTacticType: params.get("tactic_type"),
+                            icid: params.get("icid")
+                        };
+
+                        if (window.location.hostname === "partnerportal.zebra.com") {
+                            let data = window.AnalyticsDataLayer;
+                            if (data) {
+                                fields.userEmail = data.userID,
+                                fields.pp_userId = data.userID;
+                                fields.pp_accountName = data.accountName;
+                                fields.pp_accountNumber = data.accountNumber;
+                                fields.pp_userTypes = data.userTypes;
+                                fields.pp_partnerName = data.partnerName;
+                                fields.pp_partnerPrimaryRole = data.partnerPrimaryRole && data.partnerPrimaryRole.join(";");
+                                fields.pp_partnerSecondaryRole = data.partnerSecondaryRole && data.partnerSecondaryRole.join(";");
+                                fields.pp_region = data.region;
+                                fields.pp_partnerProgramMembership = data.partnerProgramMembership && data.partnerProgramMembership.join(";");
+                                fields.pp_partnerProgramProductSpecs = data.partnerProgramProductSpecs && data.partnerProgramProductSpecs.join(";");
+                            }
+                            ;
+                        }
+
+                        for (var key in fields) {
+                            if (!fields[key]) {
+                                delete fields[key];
+                            }
+                        }
+                        if (Object.keys(fields).length) {
+                            actionEvent.user = actionEvent.user || {};
+                            actionEvent.user.attributes = actionEvent.user.attributes || {};
+                            Object.keys(fields).forEach(k=>{
+                                actionEvent.user.attributes[k] = fields[k];
+                            }
+                            );
+                        }
+                    } catch (e) {//ignore    
+                    }
+                    console.log("global action called.");
+                    console.log("evg: ", actionEvent);
+                    return actionEvent;
+                }
+                ,
+                //END DEMANDBASE / TORCH INTEGRATION
+
+                contentZones: [{
+                    name: "global_popup",
+                }, {
+                    name: "global_infobar_bottom_of_page",
+                }, ],
+
+                listeners: [// START ELOQUA EMAIL INTEGRATION
+                Evergage.listener("submit", "form.gcdc-form-render", (e)=>{
+                    try {
+                        let userEmail = Evergage.cashDom(e.target).find("input[type='email'], input[name='$EmailAddress']").val().trim();
+                        Evergage.sendEvent({
+                            user: {
+                                attributes: {
+                                    emailAddress: userEmail
+                                }
+                            }
+                        });
+                    } catch (e) {//ignore
+                    }
+                }
+                )//END ELOQUA EMAIL INTEGRATION
+
+                ]
+
+            },
+
+            pageTypeDefault: {
+                name: "default"
+            },
+
+            pageTypes: [{
+                name: "homepage",
+                action: "Home page",
+                isMatch: ()=>(/www\.zebra\.com/.test(window.location.host)) && (/^\/([a-zA-Z]{2}\/[a-zA-Z]{2})+\.html$/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "home_blogRecommendations_section1",
+                    selector: "div.staggered-spotlights .staggered-spotlights__grid > div:nth-child(3)"
+                }, {
+                    name: "homepage_popup_section1"
+                }],
+            },
+            {
+                name: "signup",
+                action: "Signup",
+                isMatch: ()=>(/signup\.zebra\.com/.test(window.location.host)) && (/register/.test(window.location.pathname)),
+                listeners: [Evergage.listener("click", "#userRegistrationForm > div.col-md-12.bottomsubmit > div.col-md-12 > div > button", (event)=>{
+                    const email = Evergage.cashDom("#email").val();
+
+                    if (email) {
+                        Evergage.sendEvent({
+                            action: "Sign Up",
+                            user: {
+                                attributes: {
+                                    emailAddress: email
+                                }
+                            }
+                        });
+                    }
+                }
+                )]
+            },
+            {
+                name: "contactus",
+                action: "Contact Us",
+                isMatch: ()=>(/connect\.zebra\.com/.test(window.location.host)) && (/\/contact-enu/.test(window.location.pathname)),
+                listeners: [Evergage.listener("click", "#Submit_BTN", (event)=>{
+                    const first = Evergage.cashDom("#elqForm > div:nth-child(35) > div:nth-child(1) > div > div.form_rightcol > div > input").val();
+                    const last = Evergage.cashDom("#elqForm > div:nth-child(35) > div:nth-child(3) > div > div.form_rightcol > div > input").val();
+                    const comp = Evergage.cashDom("#demandbase-autocomplete-company-input").val();
+                    const loca = Evergage.cashDom("#country").val();
+                    const pref = Evergage.cashDom("#language").val();
+                    const email = Evergage.cashDom("#EmailInput").val();
+                    const phone = Evergage.cashDom("#phone").val();
+                    const sector = Evergage.cashDom("#column2 > div > div.form_rightcol > select").val();
+                    const interested = Evergage.cashDom("#elqForm > div:nth-child(35) > div:nth-child(13) > div > div.form_rightcol > select").val();
+
+                    if (first && last && comp && loca && pref && email && phone && sector && interested) {
+                        Evergage.sendEvent({
+                            action: "Contact Us",
+                            user: {
+                                attributes: {
+                                    firstName: first,
+                                    lastName: last,
+                                    company: comp,
+                                    location: loca,
+                                    preferredLanguage: pref,
+                                    emailAddress: email,
+                                    phone: phone,
+                                    businessSector: sector,
+                                    interests: interested
+                                }
+                            }
+                        });
+                    }
+
+                }
+                )]
+            },
+            {
+                name: "login",
+                action: "Login",
+                isMatch: ()=>(/pi\.zebra\.com/.test(window.location.host)) && (window.location.pathname.startsWith("/")),
+                listeners: [Evergage.listener("click", "body > div.ping-container.ping-signin.login-template > div.ping-body-container > div > form > div.left-button > div.col-md-12.nopadding-left.nopadding-right > div > button", (event)=>{
+                    const email = Evergage.cashDom("body > div.ping-container.ping-signin.login-template > div.ping-body-container > div > form > div:nth-child(3) > input").val();
+                    if (email) {
+                        Evergage.sendEvent({
+                            action: "Login",
+                            user: {
+                                attributes: {
+                                    emailAddress: email
+                                }
+                            }
+                        });
+                    }
+                }
+                )]
+            },
+            {
+                name: "solutions",
+                action: "Solutions",
+                isMatch: ()=>(/solutions\.html/.test(window.location.pathname) && !/\/cpn\//.test(window.location.pathname)),
+                contentZones: [{
+                    name: "solution_hero_section1",
+                    selector: "#main-content > div.fullwidthimage.section > section"
+                }, {
+                    name: "solution_text_section1",
+                    selector: "#main-content > div.fullwidthimage.section > section > div.text-items.center > h2"
+                }, {
+                    name: "solutions_popup_section1"
+                }
+                ]
+            },
+            {
+                name: "industry",
+                action: "Industry",
+                isMatch: ()=>/solutions\/industry\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "industry_popup_section1"
+                }
+                ]
+            },
+            {
+                name: "products",
+                actions: "Products",
+                isMatch: ()=>/products\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "products_text_section1",
+                    selector: "#main-content>div.fullwidthimage.section>section>div.text-items.center>h2"
+                }, {
+                    name: "products_popup_section1"
+                }, {
+                    name: "products_hero_image_section",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }
+                ],
+                listeners: [Evergage.listener("click", "#prefill-submit", (event)=>{
+
+                    const first = Evergage.cashDom("#fname").val();
+                    const last = Evergage.cashDom("#lname").val();
+                    const email = Evergage.cashDom("#email").val();
+                    const comp = Evergage.cashDom("#company").val();
+                    const loca = Evergage.cashDom("#country").val();
+
+                    if (first && last && email && comp && loca) {
+                        Evergage.sendEvent({
+                            action: "Chat Started",
+                            user: {
+                                attributes: {
+                                    firstName: first,
+                                    lastName: last,
+                                    emailAddress: email,
+                                    company: comp,
+                                    location: loca
+                                }
+                            }
+                        });
+                    }
+                }
+                )]
+            },
+            {
+                name: "services",
+                actions: "Services",
+                isMatch: ()=>/services/.test(window.location.pathname)
+            },
+            //{
+            //    name: "specsheets",
+            //    action: "Spec sheets",
+            //    isMatch: ()
+            //},
+
+            {
+                name: "supportanddownloads",
+                action: "Support and Downloads",
+                isMatch: ()=>/\/support-downloads/.test(window.location.pathname),
+                contentZones: [{
+                    name: "body",
+                    selector: ".body"
+                }]
+            },
+            {
+                name: "partners",
+                action: "Partners",
+                isMatch: ()=>/\/partners/.test(window.location.pathname)
+            },
+            {
+                name: "aboutzebra",
+                action: "About Zebra",
+                isMatch: ()=>/about-zebra/.test(window.location.pathname)
+            }, {
+                name: "blog-home",
+                action: "Blog Home",
+                isMatch: ()=>/blog\.html/.test(window.location.pathname)
+            },
+            {
+                name: "blog-podcasts",
+                action: "Blog",
+                isMatch: ()=>(/zebra\.com/.test(window.location.hostname) && /blog\/podcasts/.test(window.location.pathname)),
+
+                contentZones: [{
+                    name: "blog_recommendations_section1",
+                    selector: "div.recentblogposts > div.recent-blog-posts"
+                }, {
+                    name: "blog_recommendations_section2",
+                    selector: "div.popularblogposts > div.popular-blog-posts"
+                }],
+            },
+            {
+                name: "blog",
+                action: "Blog",
+                isMatch: ()=>{
+                    if (!/zebra\.com/.test(window.location.hostname) || !/blog\/posts/.test(window.location.pathname)) {
+                        return false;
+                    }
+                    return waitForDomReady();
+                }
+                ,
+
+                catalog: {
+                    Blog: {
+                        _id: ()=>calcBlogId(),
+                        name: Evergage.resolvers.fromSelector("#main-content > div.blog-title > h1") || null,
+                        url: ()=>window.location.href || null,
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("#main-content > div > div.row > div.col-md-8 > div.fullwidthone > section > div.hero-img-container > picture > img", "srcset") || null,
+                        description: Evergage.resolvers.fromSelectorAttribute("head > meta[property='og:description']", "content") || null,
+                        author: ()=>Evergage.cashDom("div.blogdetail > span > span > a").text() || null,
+
+                        relatedCatalogObjects: {
+                            BlogCategory: ()=>{
+                                return returnBlogCatDim()
+                            }
+                            ,
+                            Industry: ()=>{
+                                return returnInduDim()
+                            }
+                        }
+                    }
+                },
+
+                contentZones: [{
+                    name: "blog_recommendations_section1",
+                    selector: "div.recentblogposts > div.recent-blog-posts"
+                }, {
+                    name: "blog_recommendations_section2",
+                    selector: "div.popularblogposts > div.popular-blog-posts"
+                }],
+
+                listeners: [Evergage.listener("click", "body > div.gcdc-modal-wrapper.open > div > form > div.gcdc-form-group.gcdc-form-group-padded.gcdc-form-group-button-wrapper > input", (event)=>{
+
+                    const coun = Evergage.cashDom("body > div.gcdc-modal-wrapper.open > div > form > div.gcdc-form-group.gcdc-form-group-Country.gcdc-form-group-hasvalue > div > input").val();
+                    const email = Evergage.cashDom("body > div.gcdc-modal-wrapper.open > div > form > div.gcdc-form-group.gcdc-form-group-EmailAddress.gcdc-form-group-hasvalue > div > input").val();
+
+                    if (email && coun) {
+                        Evergage.sendEvent({
+                            action: "Subscribe Blog",
+                            user: {
+                                attributes: {
+                                    emailAddress: email,
+                                    country: coun
+                                }
+                            }
+                        });
+                    }
+                }
+                )]
+            },
+            {
+                name: "resourcelibrary",
+                action: "Resource Library",
+                isMatch: ()=>/resource-library/.test(window.location.pathname)
+            },
+            {
+                name: "product-printers",
+                action: "Product - Printers",
+                isMatch: ()=>/products\/printers/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productprinters_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "printers_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-accessories",
+                action: "Product - Accessories",
+                isMatch: ()=>/products\/accessories/.test(window.location.pathname),
+            },
+            {
+                name: "product-printerparts",
+                action: "Product - Printer Parts",
+                isMatch: ()=>/products\/parts\.html/.test(window.location.pathname),
+            },
+            {
+                name: "product-scanners",
+                action: "Products - Scanners",
+                isMatch: ()=>/products\/scanners/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productscanners_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "scanners_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-software",
+                action: "Products - Software",
+                isMatch: ()=>/products\/software/.test(window.location.pathname)
+            },
+            {
+                name: "product-mobilecomputers",
+                action: "Product - Mobile Computers",
+                isMatch: ()=>/products\/mobile-computers\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productmobilecomputers_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "mobilecomputers_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-tablets",
+                action: "Product - Tablets",
+                isMatch: ()=>/products\/tablets\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productstablets_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "tablets_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-mobilecomputers-wearables",
+                action: "Product - Mobile Computers - Wearables",
+                isMatch: ()=>/products\/mobile-computers\/wearable-computers\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productsmobilecomputerswearablecomputers_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "wearablecomputers_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-mobilecomputers-handheld",
+                action: "Product - Mobile Computers - Handheld",
+                isMatch: ()=>/products\/mobile-computers\/handheld/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productsmobilecomputerhandheld_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "handheldcomputers_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-mobilecomputers-vehiclemounted",
+                action: "Product - Mobile Computers - Vehicle Mounted",
+                isMatch: ()=>/products\/mobile-computers\/vehicle-mounted/.test(window.location.pathname),
+            },
+            {
+                name: "product-supplies",
+                action: "Product - Supplies",
+                isMatch: ()=>/products\/supplies/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productssupplies_hero_section1",
+                    selector: "#main-content>div.fullwidthimage.section"
+                }, {
+                    name: "supplies_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "product-rfid",
+                action: "Product - RFID",
+                isMatch: ()=>/products\/rfid\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "productsrfid_hero_image",
+                    selector: "#main-content > div:nth-child(3) > div > div > div > div > section > div > div.frame > picture"
+                }, {
+                    name: "rfid_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+            },
+            {
+                name: "solutions-industry-transportationlogistics",
+                action: "Solutions - Industry - Transportation Logistics",
+                isMatch: ()=>/solutions\/industry\/transportation-logistics\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "transportationlogistics_popup_section1"
+                }, {
+                    name: "solutionsindustrytransportationlogistics_banner_section1",
+                    selector: "#main-content>div:nth-child(8)"
+                }]
+            },
+            {
+                name: "solutions-industry-publicsector",
+                action: "Solutions - Industry - Public Sector",
+                isMatch: ()=>/solutions\/industry\/public-sector/.test(window.location.pathname)
+            },
+            {
+                name: "solutions-industry-government",
+                action: "Solutions - Industry - Government",
+                isMatch: ()=>/solutions\/industry\/government/.test(window.location.pathname)
+            },
+            {
+                name: "solutions-industry-manufacturing",
+                action: "Solutions - Industry - Manufacturing",
+                isMatch: ()=>/solutions\/industry\/manufacturing\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "manufacturing_popup_section1"
+                }]
+            },
+            {
+                name: "solutions-industry-transportationlogistics-warehouse",
+                action: "Solutions - Industry - Transportation Logistics - Warehouse",
+                isMatch: ()=>/solutions\/industry\/transportation-logistics\/warehouse\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "warehouse_popup_section1"
+                }]
+            },
+            {
+                name: "solutions-industry-transportationlogistics-fleetdelivery",
+                action: "Solutions - Industry - Transportation Logistics - Fleet Delivery",
+                isMatch: ()=>/solutions\/industry\/transportation-logistics\/fleet-delivery\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "fleetdelivery_popup_section1"
+                }]
+            },
+            {
+                name: "solutions-industry-transportationlogistics-yardterminal",
+                action: "Solutions - Industry - Transportation Logistics - Yard Terminal",
+                isMatch: ()=>/solutions\/industry\/transportation-logistics\/yard-terminal\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "yardterminal_popup_section1"
+                }]
+            },
+            {
+                name: "solutions-industry-transportationlogistics-warehouse-inventorymaterialsmanagement",
+                action: "Solutions - Industry - Transportation Logistics - Warehouse - Inventory Materials Management",
+                isMatch: ()=>/solutions\/industry\/transportation-logistics\/warehouse\/inventory-materials-management\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "inventorymaterialmanagement_popup_section1"
+                }]
+            },
+            {
+                name: "solutions-industry-retail",
+                action: "Solutions - Industry - Retail",
+                isMatch: ()=>/solutions\/industry\/retail/.test(window.location.pathname),
+                contentZones: [{
+                    name: "retail_popup_section1"
+                }, {
+                    name: "primary_text_section",
+                    selector: "#main-content > div:nth-child(4)"
+                }]
+            },
+            {
+                name: "solutions-industry-utilities",
+                action: "Solutions - Industry - Utilities",
+                isMatch: ()=>/solutions\/industry\/energy-utilities/.test(window.location.pathname),
+                contentZones: [{
+                    name: "utilities_popup_section1"
+                }, ]
+            },
+            {
+                name: "solutions-industry-hospitality",
+                action: "Solutions - Industry - Hospitality",
+                isMatch: ()=>/solutions\/industry\/hospitality/.test(window.location.pathname),
+                contentZones: [{
+                    name: "hospitality_popup_section1"
+                }, ]
+            },
+            {
+                name: "solutions-industry-healthcare",
+                action: "Solutions - Industry - Healthcare",
+                isMatch: ()=>/solutions\/industry\/healthcare/.test(window.location.pathname),
+                contentZones: [{
+                    name: "healthcare_popup_section1"
+                }, ]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners",
+                action: "Products - Industrial Machine Vision Fixed Scanners",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "machinevisionfixedscanners_popup_section1"
+                }]
+            }, {
+                name: "products-industrialmachinevisionfixedscanners-machinevisionsystems",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Machine Vision Systems",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/machine-vision-systems\.html/.test(window.location.pathname)
+            }, {
+                name: "products-industrialmachinevisionfixedscanners-fixedindustrialbarcodescanners",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Machine Vision Systems",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/fixed-industrial-barcode-scanners\.html/.test(window.location.pathname)
+
+            }, {
+                name: "products-specsheets",
+                action: "Products - Spec Sheets",
+                isMatch: ()=>/products\/spec-sheets/.test(window.location.pathname)
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-machinevisionsystems-vs20",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Machine Vision Systems - VS20",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/machine-vision-systems\/vs20\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "vs20_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-machinevisionsystems-vs40",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Machine Vision Systems - VS40",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/machine-vision-systems\/vs40\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "vs40_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-machinevisionsystems-vs70",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Machine Vision Systems - VS70",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/machine-vision-systems\/vs70\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "vs70_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-fixedindustrialbarcodescanners-fs10",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Fixed Industrial Barcode Scanners - FS10",
+                isMatch: ()=>/products\/industrial-machine-vision-fixed-scanners\/fixed-industrial-barcode-scanners\/fs10\.html/.test(window.location.pathname),
+                contentZones: [{
+                    name: "fs10_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-fixedindustrialbarcodescanners-fs20",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Fixed Industrial Barcode Scanners - FS20",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/products\/industrial-machine-vision-fixed-scanners\/fixed-industrial-barcode-scanners\/fs20\.html/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "fs20_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-fixedindustrialbarcodescanners-fs40",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Fixed Industrial Barcode Scanners - FS40",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/products\/industrial-machine-vision-fixed-scanners\/fixed-industrial-barcode-scanners\/fs40\.html/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "fs40_popup_section1"
+                }]
+            },
+            {
+                name: "products-industrialmachinevisionfixedscanners-fixedindustrialbarcodescanners-fs70",
+                action: "Products - Industrial Machine Vision Fixed Scanners - Fixed Industrial Barcode Scanners - FS70",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/products\/industrial-machine-vision-fixed-scanners\/fixed-industrial-barcode-scanners\/fs70\.html/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "fs70_popup_section1"
+                }]
+            },
+            {
+                name: "products-tablets-et5xseries",
+                action: "Products - Tablets - ET5X Series",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/products\/tablets\/et5x-series\.html/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "tablets_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+
+            },
+            {
+                name: "products-tablets-et8xseries",
+                action: "Products - Tablets - ET8X Series",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/products\/tablets\/et8x-series\.html/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "producttabletet8x_banner_section1",
+                    selector: "#main-content>div.fullwidthimage.section>section>div.hero-img-container>picture"
+                }, {
+                    name: "tablets_contact_us_buttons",
+                    selector: "#main-content > div.textandcontactbuttons.section"
+                }]
+
+            },
+            {
+                name: "cpn-pages",
+                action: "Campaign Pages",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/\/cpn\//.test(window.location.pathname)),
+                contentZones: [{
+                    name: "cpn_hero_section",
+                    selector: "#main-content > div.fullwidthimage.section"
+                }]
+            },
+            {
+                name: "zsb-pages",
+                action: "ZSB Pages",
+                isMatch: ()=>(window.location.host.toLowerCase() === "zebra.com" || window.location.host.toLowerCase() === "www.zebra.com") && (/smb/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, {
+                    name: "zsb_secondary_message",
+                    selector: "#main-content > div.themedcarousel.section > div > div.text-content.fade-in.light-background > h3 > p:nth-child(1) > b"
+                }, {
+                    name: "zsb_buy_button_primary_nav",
+                    selector: ".soho-btn"
+                }],
+
+                listeners: [Evergage.listener("click", ".authorized-retailers-popup-button, .soho-buy-section .soho-btn", (event)=>{
+                    Evergage.sendEvent({
+                        action: "ZSB Buy Button Click",
+                    });
+                }
+                )]
+            },
+            {
+                name: "partnerportal-homepage",
+                action: "Partner Portal - Homepage",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/PartnerPortal\/index\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "partnerportal-programinformation",
+                action: "Partner Portal - Program Information",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/Partnerportal\/program\/index\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "partnerportal-resources",
+                action: "Partner Portal - Resources",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/Partnerportal\/resources\/index\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "partnerportal-productportfolio",
+                action: "Partner Portal - Product Portfolio",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/Partnerportal\/product_services\/index\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "partnerportal-solutions",
+                action: "Partner Portal - Solutions",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/Partnerportal\/solutions\/index\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "partnerportal-productservices-barcodescanners-highlights",
+                action: "Partner Portal - Product Services - Barcode Scanners - Highlights",
+                isMatch: ()=>(window.location.host.toLowerCase() === "partnerportal.zebra.com" || window.location.host.toLowerCase() === "www.partnerportal.zebra.com") && (/Partnerportal\/product_services\/barcode_scanners\/barcode_scanners_highlights\.aspx/.test(window.location.pathname))
+            },
+            {
+                name: "eloqua-inventory-visibility",
+                action: "Eloqua Inventory Visibility",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/inventoryvisibility/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-grocery-ru",
+                action: "Eloqua Grocery RU",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/grocery_ru/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-grocery-gb",
+                action: "Eloqua Grocery GB",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/grocery_gb/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-saas-five-trends-br-pt",
+                action: "Eloqua SaaS Five Trends - BRPT",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/SaaSFivetrendsLA_br_pt/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-saas-five-trends-la-es",
+                action: "Eloqua SaaS Five Trends - LAES",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/SaaSFivetrendsLA_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            }, {
+                name: "eloqua-inventory-optimization-us",
+                action: "Eloqua Inventory Optimization - US",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Inventoryoptimization_us/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            }, {
+                name: "eloqua-inventory-quiz",
+                action: "Eloqua Inventory Quiz",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/inventoryquiz/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-discount-fraud-us",
+                action: "Eloqua Discount Fraud - US",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/discountfraud_us/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-prescriptive-analytics-us",
+                action: "Eloqua Prescriptive Analytics - US",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/PrescriptiveAnalytics_us_en/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-prescriptive-analytics-emea",
+                action: "Eloqua Prescriptive Analytics - EMEA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/PrescriptiveAnalytics_EMEA/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-employee-engagement",
+                action: "Eloqua Employee Engagement",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/EmployeeEngagement/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-new-retail-experience-br",
+                action: "Eloqua New Retail Experience - BR",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/newretailexperience_br_pt/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-new-retail-experience-la",
+                action: "Eloqua New Retail Experience - LA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/newretailexperience_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-new-task-manager-br",
+                action: "Eloqua New Task Manager - BR",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/NewTaskManager_br_pt/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-new-task-manager-la",
+                action: "Eloqua New Task Manager - LA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/NewTaskManager_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-new-task-manager-us",
+                action: "Eloqua New Task Manager - US",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Newtaskmanager_us_en/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-reflexis-ap",
+                action: "Eloqua Reflexis - AP",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Reflexis_ap_en/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-reflexis-br",
+                action: "Eloqua Reflexis - BR",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Reflexis_br_pt/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-reflexis-gb",
+                action: "Eloqua Reflexis - GB",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Reflexis_gb_en/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-reflexis-la",
+                action: "Eloqua Reflexis - LA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Reflexis_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-reflexis-us",
+                action: "Eloqua Reflexis - US",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/Reflexis_us_en/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-retail-crystalcs-la",
+                action: "Eloqua Retail CrystalCS - LA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/retailcrystalcs_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-retail-success-br",
+                action: "Eloqua Retail Success - BR",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/RetailSuccess_br_pt/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-retail-success-la",
+                action: "Eloqua Retail Success - LA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/RetailSuccess_la_es/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            {
+                name: "eloqua-retailwfc-na",
+                action: "Eloqua Retail WFC - NA",
+                isMatch: ()=>(window.location.host.toLowerCase() === "connect.zebra.com" || window.location.host.toLowerCase() === "www.connect.zebra.com") && (/retailwfc_na/.test(window.location.pathname)),
+                contentZones: [{
+                    name: "global_popup"
+                }, ]
+            },
+            ]
+        }
+
+        Evergage.initSitemap(sitemapConfig);
