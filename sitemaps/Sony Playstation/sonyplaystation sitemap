@@ -1,0 +1,534 @@
+var evgr = Evergage.resolvers;
+    Evergage.init({
+        cookieDomain: 'playstation.com',
+    }).then(()=>{
+        const sitemapConfig = {
+            global: {
+                locale: ()=>determineLocale(),
+                onActionEvent: (actionEvent)=>{
+                    actionEvent.user = actionEvent.user || {};
+                    actionEvent.user.attributes = actionEvent.user.attributes || {};
+
+                    // Grab psnId parameter that is 'psnId' or 'psnid'
+                    let psnId = Evergage.util.getParameterByName('psnId') ? Evergage.util.getParameterByName('psnId') : Evergage.util.getParameterByName('psnid');
+                    // Grab email parameter that is 'e' - email address should be encoded for privacy.
+                    let email_enc = Evergage.util.getParameterByName('e');
+
+                    // If psnId is populated, add it as user attribute
+                    // sometimes URL has psnId parameter where the value is 'network_psn'...we want the actual psnId value
+                    if (psnId && psnId !== 'network_psn') {
+                        actionEvent.user.attributes.psnId = psnId;
+                    }
+
+                    if (email_enc) {
+                        let email = atob(email_enc);
+                        console.log(email);
+                        // If email is valid, then add it as user attribute
+                        if (validateEmail(email)) {
+                            actionEvent.user.attributes.emailAddress = email;
+                            actionEvent.user.attributes.sfmcContactKey = email
+                        }
+                    }
+
+                    console.log('evg: ', actionEvent);
+                    return actionEvent;
+                }
+                ,
+            },
+            pageTypeDefault: {
+                name: 'Default',
+            },
+            pageTypes: [{
+                name: 'Homepage',
+                action: 'Homepage',
+                isMatch: ()=>{
+                    if (digitalData.page.pageInfo.category.primaryCategory === 'Home') {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+                ,
+                listeners: [Evergage.listener('click', '[data-dtm-label="Explore PlayStation Plus"]', ()=>{
+                    Evergage.sendEvent({
+                        action: 'Explore Playstation Plus',
+                    });
+                }
+                ), ],
+            }, {
+                name: 'Video Game Product Detail Page',
+                action: 'Video Game Product Detail Page',
+                isMatch: ()=>{
+                    return /\/games/.test(window.location.href) && Evergage.cashDom('.game-hero').length > 0;
+                }
+                ,
+                catalog: {
+                    Product: {
+                        _id: ()=>getProductInformation()['product-info'].conceptId,
+                        name: ()=>getProductInformation()['game-info'].name,
+                        price: ()=>getProductInformation()['product-info'].price,
+                        url: window.location.origin + window.location.pathname,
+                        // Easy way to strip any extra url params
+                        imageUrl: ()=>getProductInformation()['product-info'].image,
+                        currency: ()=>getProductInformation()['product-info'].priceCurrency,
+                        inventoryCount: 1,
+                        description: ()=>{
+                            let textBlock = Evergage.cashDom('.textblock.parbase > .text-block').text().trim().replace(/\n/g, '').substring(0, 250);
+
+                            // "text-block" class sometimes contains the game description, other times has copyright text, or is empty...
+                            if (textBlock.length === 0 || textBlock.includes('©')) {
+                                let gameOverview = Evergage.cashDom('[data-mfe-name="gameOverview"]').text().trim().replace(/\n/g, '').substring(0, 250);
+
+                                if (gameOverview.length > 0) {
+                                    return gameOverview;
+                                } else {
+                                    // return empty string since game description couldn't be found in "text-block" or "gameOverview"
+                                    return '';
+                                }
+                            } else {
+                                return textBlock;
+                            }
+                        }
+                        ,
+                        releaseDate: ()=>{
+                            // sometimes releaseDate is not available in product info and needs to be taken from "skus" array
+                            if (getProductInformation()['product-info'].releaseDate === undefined) {
+                                return getProductInformation()['product-info'].skus[0].releaseDate;
+                            } else {
+                                return getProductInformation()['product-info'].releaseDate;
+                            }
+                        }
+                        ,
+                        publisherName: ()=>getProductInformation()['product-info'].publisher,
+                        categories: ()=>{
+                            let platform = getProductInformation()['product-info'].platforms;
+                            let genres = getProductInformation()['product-info'].genres;
+                            // sometimes Genres are not available in "product-info" object
+                            if (genres === undefined || genres.length === 0) {
+                                genres = getProductInformation()['product-info'].skus[0].genres;
+                            }
+                            if (platform === undefined) {
+                                platform = buildPlatformsFlag();
+                            }
+
+                            let categories = [];
+
+                            if (platform !== undefined && genres !== undefined) {
+                                if (platform.length > 0 && genres.length > 0) {
+                                    platform.forEach((console)=>{
+                                        genres.forEach((genre)=>{
+                                            categories.push(`GAMES|${console}|${genre}`);
+                                        }
+                                        );
+                                    }
+                                    );
+                                }
+                            }
+                            return categories;
+                        }
+                        ,
+                        relatedCatalogObjects: {
+                            Genre: ()=>{
+                                let genres = getProductInformation()['product-info'].genres;
+                                if (genres === undefined || genres.length === 0) {
+                                    // Sometimes Genres are not available in "product-info" object and instead are found under "skus"
+                                    let genresFromSku = getProductInformation()['product-info'].skus[0].genres;
+                                    if (genresFromSku.length > 0) {
+                                        return genresFromSku;
+                                    } else {
+                                        return [];
+                                    }
+                                } else {
+                                    return genres;
+                                }
+                            }
+                            ,
+                            ProductType: ()=>{
+                                if (getProductInformation()['product-info'].productType === undefined) {
+                                    let productTypeFromSku = getProductInformation()['product-info'].skus[0].productType;
+                                    if (productTypeFromSku !== undefined) {
+                                        return [productTypeFromSku];
+                                    } else {
+                                        return [];
+                                    }
+                                } else {
+                                    return [getProductInformation()['product-info'].productType];
+                                }
+                            }
+                            ,
+                            Platform: ()=>{
+                                let platform = getProductInformation()['product-info'].platforms;
+                                if (platform === undefined) {
+                                    return buildPlatformsFlag();
+                                } else {
+                                    return platform;
+                                }
+                            }
+                            ,
+                            Rating: ()=>{
+                                let locale = getProductInformation()['mercury-locale'];
+                                let currency = getProductInformation()['product-info'].priceCurrency;
+                                // Doing this to prevent adding duplicate/overwriting dimensions with multiple languages
+                                if (currency !== 'USD' && locale !== 'en_US') {
+                                    return [];
+                                } else {
+                                    // sometimes content rating is not available under "product-info"
+                                    if (getProductInformation()['product-info'].contentRating !== undefined) {
+                                        return [getProductInformation()['product-info'].contentRating];
+                                    } else {
+                                        return [Evergage.cashDom('.psw-l-line-left-top > a').data().track.attributes.label];
+                                    }
+                                }
+                            }
+                            ,
+                            Feature: ()=>getProductFeatures().generalFeatures,
+                            OnlineFeature: ()=>getProductFeatures().onlineFeature,
+                            NumberOfLocalPlayers: ()=>getProductFeatures().numberOfLocalPlayers,
+                            ScreenLanguage: ()=>{
+                                let locale = getProductInformation()['mercury-locale'];
+                                let currency = getProductInformation()['product-info'].priceCurrency;
+                                // Doing this to prevent adding duplicate dimensions with multiple languages
+                                if (currency !== 'USD' && locale !== 'en_US') {
+                                    return [];
+                                } else {
+                                    let languages = Evergage.cashDom('[data-qa="gameInfo#releaseInformation#subtitles-value"]').text().split(', ');
+
+                                    // Secondary check to test if array of Screen Languages contains non-ascii characters
+                                    let nonAsciiCharsTest = RegExp('[^\x00-\x7F]+').test(languages);
+                                    if (nonAsciiCharsTest === true) {
+                                        return [];
+                                    } else {
+                                        return languages;
+                                    }
+                                }
+                            }
+                            ,
+                            VoiceLanguage: ()=>{
+                                let locale = getProductInformation()['mercury-locale'];
+                                let currency = getProductInformation()['product-info'].priceCurrency;
+                                // Doing this to prevent adding duplicate dimensions with multiple languages
+                                if (currency !== 'USD' && locale !== 'en_US') {
+                                    return [];
+                                } else {
+                                    let languages = Evergage.cashDom('[data-qa="gameInfo#releaseInformation#voice-value"]').text().split(', ');
+
+                                    // Secondary check to test if array of Screen Languages contains non-ascii characters
+                                    let nonAsciiCharsTest = RegExp('[^\x00-\x7F]+').test(languages);
+                                    if (nonAsciiCharsTest === true) {
+                                        return [];
+                                    } else {
+                                        return languages;
+                                    }
+                                }
+                            }
+                            ,
+                            MonthsSinceRelease: ()=>buildMonthsSinceReleaseFlag(),
+                        },
+                    },
+                },
+            }, {
+                name: 'PlayStation 5',
+                action: 'PlayStation 5',
+                isMatch: ()=>/\/ps5/.test(window.location.href) && window.location.pathname.split('/').length < 5,
+            }, {
+                name: 'PlayStation 5 Accessories',
+                action: 'PlayStation 5 Accessories',
+                isMatch: ()=>/\/ps5\/accessories/.test(window.location.href),
+            }, {
+                name: 'DualSense Wireless Controller',
+                action: 'DualSense Wireless Controller',
+                isMatch: ()=>/\/accessories\/dualsense-wireless-controller/.test(window.location.href),
+            }, {
+                name: 'PlayStation 5 Console Covers',
+                action: 'PlayStation 5 Console Covers',
+                isMatch: ()=>/\/accessories\/ps5-console-covers/.test(window.location.href),
+            }, {
+                name: 'Pulse 3D Wireless Headset',
+                action: 'Pulse 3D Wireless Headset',
+                isMatch: ()=>/\/accessories\/pulse-3d-wireless-headset/.test(window.location.href),
+            }, {
+                name: 'Media Remote',
+                action: 'Media Remote',
+                isMatch: ()=>/\/accessories\/media-remote/.test(window.location.href),
+            }, {
+                name: 'HD Camera',
+                action: 'HD Camera',
+                isMatch: ()=>/\/accessories\/hd-camera/.test(window.location.href),
+            }, {
+                name: 'PlayStation 5 Features',
+                action: 'PlayStation 5 Features',
+                isMatch: ()=>/\/ps5\/ps5-features/.test(window.location.href),
+            }, {
+                name: 'PlayStation 5 Entertainment',
+                action: 'PlayStation 5 Entertainment',
+                isMatch: ()=>/\/ps5\/ps5-entertainment/.test(window.location.href),
+            }, {
+                name: 'Search',
+                action: 'Search',
+                isMatch: ()=>/\/search/.test(window.location.href),
+            }, {
+                name: 'PlayStation 5 Games',
+                action: 'PlayStation 5 Games',
+                isMatch: ()=>/\/ps5\/games/.test(window.location.href),
+            }, {
+                name: 'PlayStation 4',
+                action: 'PlayStation 4',
+                isMatch: ()=>/\/ps4/.test(window.location.href) && digitalData.page.pageInfo.pageName === 'web:pdc:ps4',
+            }, {
+                name: 'PlayStation 4 Pro',
+                action: 'PlayStation 4 Pro',
+                isMatch: ()=>/\/ps4\/ps4-pro/.test(window.location.href),
+            }, {
+                name: 'PlayStation 4 Tech Specs',
+                action: 'PlayStation 4 Tech Specs',
+                isMatch: ()=>/\/ps4\/tech-specs/.test(window.location.href),
+            }, {
+                name: 'PlayStation 4 Accessories',
+                action: 'PlayStation 4 Accessories',
+                isMatch: ()=>/\/ps4\/ps4-accessories/.test(window.location.href),
+            }, {
+                name: 'DualShock 4 Wireless Controller',
+                action: 'DualShock 4 Wireless Controller',
+                isMatch: ()=>/\/accessories\/dualshock-4-wireless-controller/.test(window.location.href),
+            }, {
+                name: 'Gold Wireless Headset',
+                action: 'Gold Wireless Headset',
+                isMatch: ()=>/\/accessories\/gold-wireless-headset/.test(window.location.href),
+            }, {
+                name: 'Additional PS4 Controllers',
+                action: 'Additional PS4 Controllers',
+                isMatch: ()=>/\/accessories\/additional-ps4-gaming-controllers/.test(window.location.href),
+            }, {
+                name: 'Platinum Wireless Headset',
+                action: 'Platinum Wireless Headset',
+                isMatch: ()=>/\/accessories\/platinum-wireless-headset/.test(window.location.href),
+            }, {
+                name: 'PlayStation Camera',
+                action: 'PlayStation Camera',
+                isMatch: ()=>/\/accessories\/playstation-camera/.test(window.location.href),
+            }, {
+                name: 'PlayStation 4 Entertainment',
+                action: 'PlayStation 4 Entertainment',
+                isMatch: ()=>/\/ps4\/ps4-entertainment/.test(window.location.href),
+            }, {
+                name: 'PlayStation 4 Games',
+                action: 'PlayStation 4 Games',
+                isMatch: ()=>/\/ps4\/ps4-games/.test(window.location.href),
+            }, {
+                name: 'PlayStation VR Games',
+                action: 'PlayStation VR Games',
+                isMatch: ()=>/\/ps-vr\/ps-vr-games/.test(window.location.href) && digitalData.page.pageInfo.pageName === 'web:pdc:ps-vr:ps-vr-games',
+            }, {
+                name: 'PlayStation Plus Games',
+                action: 'PlayStation Plus Games',
+                isMatch: ()=>/\/ps-plus\/this-month-on-ps-plus/.test(window.location.href) && digitalData.page.pageInfo.pageName === 'web:pdc:ps-plus:this-month-on-ps-plus',
+            }, {
+                name: 'PlayStation Now Games',
+                action: 'PlayStation Now Games',
+                isMatch: ()=>/\/ps-now\/ps-now-games/.test(window.location.href),
+            }, {
+                name: 'PlayStation Plus',
+                action: 'PlayStation Plus',
+                isMatch: ()=>/\/ps-plus/.test(window.location.href) && digitalData.page.pageInfo.pageName === 'web:pdc:ps-plus',
+                listeners: [Evergage.listener('click', "[data-dtm-label='Buy now'", ()=>{
+                    Evergage.sendEvent({
+                        action: 'Buy Now - PlayStation Plus',
+                    });
+                }
+                ), ],
+            }, {
+                name: 'Join PlayStation Plus',
+                action: 'Join PlayStation Plus',
+                isMatch: ()=>/\/ps-plus\/join-ps-plus/.test(window.location.href),
+            }, {
+                name: 'PlayStation VR',
+                action: 'PlayStation VR',
+                isMatch: ()=>/\/ps-vr/.test(window.location.href) && digitalData.page.pageInfo.pageName === 'web:pdc:ps-vr',
+            }, {
+                name: 'PlayStations VR Tech Specs',
+                action: 'PlayStations VR Tech Specs',
+                isMatch: ()=>/\/ps-vr\/tech-specs/.test(window.location.href),
+            }, {
+                name: 'PlayStations VR Accessories',
+                action: 'PlayStations VR Accessories',
+                isMatch: ()=>/\/ps-vr\/accessories/.test(window.location.href),
+            }, {
+                name: 'PlayStations VR 2',
+                action: 'PlayStations VR 2',
+                isMatch: ()=>/\/ps-vr2/.test(window.location.href),
+            }, {
+                name: 'PlayStation Network',
+                action: 'PlayStation Network',
+                isMatch: ()=>/\/playstation-network/.test(window.location.href),
+            }, {
+                name: 'PlayStation Now',
+                action: 'PlayStation Now',
+                isMatch: ()=>/\/ps-now/.test(window.location.href),
+                listeners: [Evergage.listener('click', "[data-dtm-label='See all the games'", ()=>{
+                    Evergage.sendEvent({
+                        action: 'See all the games - PS Now',
+                    });
+                }
+                ), ],
+            }, {
+                name: 'About PlayStation Store',
+                action: 'About PlayStation Store',
+                isMatch: ()=>/\/about-playstation-store/.test(window.location.href),
+            }, {
+                name: 'Support',
+                action: 'Support',
+                isMatch: ()=>/\/support/.test(window.location.href),
+            }, {
+                name: 'About PlayStation',
+                action: 'About PlayStation',
+                isMatch: ()=>/\/corporate\/about-us/.test(window.location.href),
+            }, ],
+        };
+
+        const getProductFeatures = ()=>{
+            const mfeCompatibilityNoticies = Evergage.cashDom('.psw-l-line-left.psw-l-space-x-3');
+            let generalFeatures = [];
+            let onlineFeature = [];
+            let numberOfOnlinePlayers = [];
+            let numberOfLocalPlayers = [];
+            if (mfeCompatibilityNoticies.length > 0) {
+                for (let i = 0; i < mfeCompatibilityNoticies.length; i++) {
+                    let notice = mfeCompatibilityNoticies.eq(i).text().toUpperCase();
+                    // Below we are using a series of if/then statements to organize the product features pulled from the page
+                    if (notice.includes('ONLINE PLAY') && notice.includes('ONLINE PLAYERS') === false) {
+                        // If the string contains 'online play' we know it's describing the online Feature of the game
+                        onlineFeature.push(notice);
+                    }// Note: sometimes vibration + trigger effect are in the same line item so we account for that scenario first to avoid adding both flags
+                    else if (notice.includes('VIBRATION FUNCTION') && notice.includes('TRIGGER EFFECT')) {
+                        generalFeatures.push('TRIGGER EFFECT REQUIRED');
+                        generalFeatures.push('VIBRATION EFFECT REQUIRED');
+                    } else if (notice.includes('TRIGGER EFFECT')) {
+                        generalFeatures.push('TRIGGER EFFECT REQUIRED');
+                    } else if (notice.includes('VIBRATION FUNCTION')) {
+                        generalFeatures.push('VIBRATION EFFECT REQUIRED');
+                    } else if (notice.includes('REMOTE PLAY')) {
+                        generalFeatures.push(notice);
+                    } else if (notice.includes('IN-GAME PURCHASES')) {
+                        generalFeatures.push(notice);
+                    } else if ((notice.includes('PLAYERS') || notice.includes('PLAYER')) && notice.includes('ONLINE PLAYERS') === false && notice.includes('NETWORK PLAYERS') === false) {
+                        numberOfLocalPlayers.push(notice);
+                    }
+                }
+            }
+            return {
+                onlineFeature: onlineFeature,
+                generalFeatures: generalFeatures,
+                numberOfLocalPlayers: numberOfLocalPlayers,
+            };
+        }
+        ;
+
+        // Calculates the Months since release date and adds it as a flag to the Product (ex. '1 Month'). If game is not released yet, it will add 'Unreleased' flag
+        const buildMonthsSinceReleaseFlag = ()=>{
+            let today = new Date();
+            let releaseDate;
+            // sometimes releaseDate is not available within "product-info"
+            if (getProductInformation()['product-info'].releaseDate !== undefined) {
+                releaseDate = new Date(getProductInformation()['product-info'].releaseDate);
+            } else {
+                releaseDate = new Date(getProductInformation()['product-info'].skus[0].releaseDate);
+            }
+
+            let todaysMonth = today.getMonth();
+            let cta = Evergage.cashDom('[data-qa="mfeCtaMain#cta#action"]').text();
+            let todaysYear = today.getYear();
+            let releaseDatesMonth = releaseDate.getMonth();
+            let releaseDatesYear = releaseDate.getYear();
+            let numberOfMonths;
+
+            if (cta.length === 0 || cta === 'Pre-Order' || releaseDate > today) {
+                numberOfMonths = 'UNRELEASED';
+            } else {
+                let monthDifference = (todaysYear - releaseDatesYear) * 12 + (todaysMonth - releaseDatesMonth);
+
+                numberOfMonths = monthDifference;
+                numberOfMonths += monthDifference <= 1 ? ' MONTH' : ' MONTHS';
+            }
+
+            return [numberOfMonths];
+        }
+        ;
+
+        const buildPlatformsFlag = ()=>{
+            let platformFlags = [];
+
+            let platformIcons = Evergage.cashDom('.icon-block.platform-badge__wide-icon');
+            if (platformIcons.length > 0) {
+                for (let i = 0; i < platformIcons.length; i++) {
+                    platformFlags.push(platformIcons[i].innerText);
+                }
+            }
+
+            return platformFlags;
+        }
+        ;
+
+        function addToCartObserver() {
+            let addToCartEventLogged = false;
+            if (!addToCartEventLogged) {
+                setInterval(()=>{
+                    if (Evergage.getCurrentPage() && Object.keys(Evergage.getCurrentPage()).length !== 0 && digitalData.commerceEvent !== null) {
+                        if (Evergage.getCurrentPage().source.pageType === 'Product Detail Page' && digitalData.commerceEvent.eventInfo !== 'undefined') {
+                            const eventName = digitalData.commerceEvent.eventInfo.eventName;
+                            if ((eventName.includes('cart_add') || eventName.includes('add_pre_order')) && !addToCartEventLogged) {
+                                addToCartEventLogged = true;
+                                const id = getProductInformation()['product-info'].conceptId;
+                                const price = getProductInformation()['product-info'].price;
+
+                                Evergage.sendEvent({
+                                    action: 'Add to Cart',
+                                    itemAction: Evergage.ItemAction.AddToCart,
+                                    cart: {
+                                        singleLine: {
+                                            Product: {
+                                                _id: id,
+                                                price: parseFloat(price),
+                                                quantity: 1,
+                                            },
+                                        },
+                                    },
+                                });
+                            }
+                        }
+                    }
+                }
+                , 500);
+            }
+        }
+
+        const getProductInformation = ()=>{
+            let productInformation = Evergage.cashDom('.basepage.page.basicpage').data();
+            return {
+                ...productInformation,
+            };
+        }
+        ;
+
+        const validateEmail = (email)=>{
+            var regEx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return regEx.test(email);
+        }
+        ;
+
+        const determineLocale = ()=>{
+            // Need to format locale so "en-US" is "en_US"
+            let locale = Evergage.cashDom('html')[0].lang.replace(/-/gi, '_');
+
+            // Handle China/Taiwan locales to prevent errors in event stream
+            if (locale === 'zh_HANS_CN') {
+                locale = 'zh_CN';
+            } else if (locale === 'zh_HANT_TW') {
+                locale = 'zh_TW';
+            }
+
+            return locale;
+        }
+        ;
+
+        addToCartObserver();
+        Evergage.initSitemap(sitemapConfig);
