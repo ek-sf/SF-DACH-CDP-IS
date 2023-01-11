@@ -1,0 +1,300 @@
+function EvergageInit(){
+Evergage.init({
+    cookieDomain: "vwfs.de"
+}).then(() => {
+    
+    const config = {
+       global: {
+            onActionEvent: (actionEvent) => {
+               // const email = "ekunert@salesforce.com";
+                const anonID = "087777774562";
+                        actionEvent.user.id = anonID;
+                    return actionEvent;
+            }
+        },
+        pageTypeDefault: {
+            name: "default"
+        },
+        pageTypes: [
+            {
+                isMatch: () => window.location.pathname === "/",
+                name: "Homepage",
+                action: "Homepage",
+                contentZones: [
+                {
+                    name: "Homepage Hero Banner",
+                    selector: "#main > div.c-hero-teaser.c-hero-slider.c-hero-teaser--shallow.c-hero-slider--shallow.js-hero-slider.flickity-enabled.is-initialized.is-slideable.flickity-resize"
+                },
+                {
+                    name: "Homepage Recommendations",
+                    selector: "#section-nav-sections > div:nth-child(1) > section > div:nth-child(1) > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname === "/autoabo.html",
+                name: "Auto Abo Overview Page",
+                action: "Auto Abo Overview Page",
+                contentZones: [
+                {
+                    name: "Homepage Recommendations",
+                    selector: "#abo-auswahl"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000KCMqwAAH',
+                name: "Auto Abo Micro Abo",
+                action: "Auto Abo Micro Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000KCMqwAAH',
+                        name: "VWFS Micro Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 409,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Seat'],
+                            ItemClass: () => ['Micro'],
+                            Style: () => ['VW Up!','Seat Mii']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReGu7AAF',
+                name: "Auto Abo City Abo",
+                action: "Auto Abo City Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReGu7AAF',
+                        name: "VWFS City Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 459,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Seat','Skoda'],
+                            ItemClass: () => ['City'],
+                            Style: () => ['VW Polo','Seat Ibiza','Skoda Fabia']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReGuqAAF',
+                name: "Auto Abo Compact Abo",
+                action: "Auto Abo Compact Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReGuqAAF',
+                        name: "VWFS Compact Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 499,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Seat'],
+                            ItemClass: () => ['Compact'],
+                            Style: () => ['VW Golf','Seat Leon']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReHB2AAN',
+                name: "Auto Abo Compact Space Abo",
+                action: "Auto Abo Compact Space Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReHB2AAN',
+                        name: "VWFS Compact Space Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 519,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Seat'],
+                            ItemClass: () => ['Compact Space'],
+                            Style: () => ['VW Golf Variant','Seat Leon ST']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReKBbAAN',
+                name: "Auto Abo SUV Compact Abo",
+                action: "Auto Abo SUV Compact Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReKBbAAN',
+                        name: "VWFS SUV Compact Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 569,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Skoda'],
+                            ItemClass: () => ['SUV Compact'],
+                            Style: () => ['VW T-Roc','Skoda Karoq']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReHJaAAN',
+                name: "Auto Abo Family Space Abo",
+                action: "Auto Abo Family Space Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReHJaAAN',
+                        name: "VWFS Family Space Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 649,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW','Skoda'],
+                            ItemClass: () => ['Family Space'],
+                            Style: () => ['VW Passat Variant','Skoda Octavia Combi']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReHKFAA3',
+                name: "Auto Abo Minibus Standard Abo",
+                action: "Auto Abo Minibus Standard Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReHKFAA3',
+                        name: "VWFS Minibus Standard Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 1109,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW'],
+                            ItemClass: () => ['Minibus Standard'],
+                            Style: () => ['VW Caravelle']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.href.split("=")[2] === 'a020900000ReHM0AAN',
+                name: "Auto Abo Minibus Premium Abo",
+                action: "Auto Abo Minibus Premium Abo",
+                catalog: {
+                    Product: {
+                        _id: 'a020900000ReHM0AAN',
+                        name: "VWFS Minibus Premium Abo",
+                        imageUrl: Evergage.resolvers.fromSelectorAttribute("div.c-product-info__media > figure > img","srcset"),
+                        categories: ["Auto Abo"],
+                        price: 1209,
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => ['VW'],
+                            ItemClass: () => ['Minibus Premium'],
+                            Style: () => ['VW Multivan']
+                        }
+                    } 
+                },
+                contentZones: [
+                {
+                    name: "Homepage Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "META Pixel Activation",
+                    selector: "#main > footer > div.c-footer__module.c-footer__module--breadcrumb > div > div"
+                }
+                ]
+            },
+        /*    {
+                isMatch: () => window.location.pathname === "/autoabo/autoabo-konfiguration.html",
+                name: "Auto Abo Process Step 1 Konfiguration",
+                action: "Auto Abo Process Step 1 Konfiguration",
+            }, */
+            {
+                isMatch: () => true,
+                name: "Unknown Page",
+                action: "Unknown Page View"
+            }
+        ]
+    };
+Evergage.initSitemap(config);
+});
+}
+EvergageInit();
