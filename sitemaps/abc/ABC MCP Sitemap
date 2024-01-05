@@ -1,0 +1,416 @@
+const getCookieDomain = () => {
+  let currentDomain = window.location.hostname;
+  if (currentDomain === "abc-demo.cloud") {
+    return "abc-demo.cloud";
+  } else if (currentDomain === "abc-demo.my.site.com") {
+    return "abc-demo.my.site.com";
+  }
+};
+const currentCookieDomain = getCookieDomain();
+
+Evergage.init({
+  cookieDomain: currentCookieDomain,
+}).then(() => {
+  let siteAConfig = {
+    global: {
+            contentZones: [
+                {
+                    name: "Web Brand Logo",
+                    selector: ".site-branding"
+                },
+                {
+                    name: "Meta Pixel",
+                    selector: ".site-info"
+                }
+                ],
+            listeners: [
+                    Evergage.listener("click", "#wpforms-submit-891", () => {
+                        const email = Evergage.cashDom("#wpforms-891-field_2").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "Profile Switched",  user: {attributes: {emailAddress:  email}}});
+                        }
+                    })
+                ]
+        },
+        pageTypeDefault: {
+            name: "default"
+        },
+        pageTypes: [
+            {
+                isMatch: () => window.location.pathname === "/",
+                name: "Homepage",
+                action: "Homepage",
+                contentZones: [
+                {
+                    name: "Homepage Logo",
+                    selector: ".entry-title"
+                },
+                {
+                    name: "Homepage Hero Banner",
+                    selector: ".is-home-hero"
+                },
+                {
+                    name: "Homepage Recs 1",
+                    selector: ".is-home-recs-1"
+                },
+                {
+                    name: "Homepage Recs 2",
+                    selector: ".is-home-recs-2"
+                },
+                {
+                    name: "Popup",
+                    selector: "#popup"
+                },
+                {
+                    name: "Survey",
+                    selector: "#survey"
+                },
+                ],
+                listeners: [
+                   Evergage.listener("click", "#00N5f00000GjwuH", () => {
+                        const email = Evergage.cashDom("#email").val();
+                        const phone = Evergage.cashDom("#mobile").val();
+                        const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
+                        const firstname = Evergage.cashDom("#first_name").val();
+                        const lastname = Evergage.cashDom("#last_name").val();
+                        const brand = Evergage.cashDom("#00N5f00000gJDbj").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "ABC Newsletter Popup Sign-Up",  user: {attributes: {emailAddress:  email, phone:  phone, userName: user_name, first_name: firstname, last_name: lastname, brand_interest: brand}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PDP",
+                name: "Product",
+                action: "Product",
+                catalog: {
+                    Product: {
+                        _id: Evergage.resolvers.fromSelector(".sku")(),
+                        name: Evergage.resolvers.fromMeta("og:title")(),
+                        imageUrl: Evergage.resolvers.fromMeta("og:image")(),
+                        categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+                        price: Evergage.resolvers.fromSelector(".price")().replace(",","."),
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => [Evergage.resolvers.fromMeta("brand")()],
+                            ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
+                            ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
+                            Style: () => Evergage.resolvers.fromMeta("keywords")().split(","),
+                            Demo: () => [Evergage.resolvers.fromMeta("demo")()]
+                        }
+                    }
+                },
+                contentZones: [
+                    {
+                        name: "Product Similar Items",
+                        selector: ".related.products"
+                    },
+                    {
+                        name: "Product Survey",
+                        selector: "#survey-product-page"
+                    },
+                ],
+                listeners: [
+                            Evergage.listener("click", "button[name='quick_buy']", () => {
+                                Evergage.sendEvent({
+                                    itemAction: Evergage.ItemAction.Purchase,
+                                    action: "Purchase",
+                                    order: {
+                                        Product: {
+                                            orderId: new Date().getTime(),
+                                            totalValue: Evergage.resolvers.fromSelectorAttribute("input[name='gtm4wp_price']","value")(),
+                                            lineItems: [
+                                                {
+                                                	_id: Evergage.resolvers.fromSelector(".sku")(),
+                                                	quantity: Evergage.resolvers.fromSelectorAttribute(".input-text.qty.text","value")(),
+                                                	price: Evergage.resolvers.fromSelectorAttribute("input[name='gtm4wp_price']","value")()
+                                                }                                            
+                                            ]
+                                        }
+                                    }
+                                });
+                            }),
+                            Evergage.listener("click", ".single_add_to_cart_button", () => {
+                                const lineItem = Evergage.util.buildLineItemFromPageState(".input-text.qty.text");
+                                lineItem.sku = { _id: Evergage.resolvers.fromSelector(".sku")() };
+                                Evergage.sendEvent({
+                                    action: "Add to Cart",
+                                    itemAction: Evergage.ItemAction.AddToCart,
+                                    cart: {
+                                        singleLine: {
+                                            Product: lineItem
+                                        }
+                                    }
+                                });
+                            }),
+                ],
+            },
+            {
+                name: "Cart",
+                action: "Viewed Cart",
+                isMatch: ()=>/\/basket/.test(window.location.href),
+                itemAction: Evergage.ItemAction.ViewCart,
+                catalog: {
+                    Product: {
+                        lineItems: {
+                            _id: ()=> Evergage.resolvers.fromSelectorAttributeMultiple("td.product-remove > a", "data-product_sku")(),
+                            price: ()=> Evergage.resolvers.fromSelectorMultiple("tr.woocommerce-cart-form__cart-item.cart_item > td.product-subtotal > span")(),
+                            quantity: ()=> Evergage.resolvers.fromSelectorAttributeMultiple(".input-text.qty.text","value")()
+                        }
+                    }
+                },
+            },
+            {
+                name: "Purchase",
+                action: "Purchase",
+                isMatch: ()=>/\/checkout\/order-received/.test(window.location.href),
+                itemAction: Evergage.ItemAction.Purchase,
+                catalog: {
+                    Product: {
+                            orderId: window.location.pathname.split("/")[3],
+                        lineItems: {
+                            _id: () => {
+                                return Evergage.DisplayUtils.pageElementLoaded(".woocommerce-table__product-name.product-name > .wc-item-meta p", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple(".woocommerce-table__product-name.product-name > .wc-item-meta p");
+                                });
+                            },
+                            price:  () => {
+                                return Evergage.DisplayUtils.pageElementLoaded("td.woocommerce-table__product-total.product-total > span > bdi", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple("td.woocommerce-table__product-total.product-total > span > bdi");
+                                });
+                            },
+                            quantity:  () => {
+                                return Evergage.DisplayUtils.pageElementLoaded(".product-quantity", "html").then((ele) => {
+                                    return Evergage.resolvers.fromSelectorMultiple(".product-quantity");
+                                });
+                            },
+                        }
+                        //    totalValue: Evergage.resolvers.fromSelector("#post-44 > div.entry-content > div > div > ul > li.woocommerce-order-overview__total.total > strong > span > bdi")(),
+                        //  currency: "EUR"
+                    }
+                }
+            },
+            {
+                name: "Checkout Page",
+                action: "Checkout Page",
+                isMatch: ()=>/\/checkout/.test(window.location.href),
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="PLP",
+                name: "Product Category",
+                action: "Product Category",
+            },
+           {
+                name: "Login Page",
+                action: "Login Page",
+                isMatch: () => Evergage.resolvers.fromMeta("og:title")() === "My account",
+                listeners: [
+                    Evergage.listener("click", ".woocommerce-form-login__submit", () => {
+                        const email = Evergage.cashDom("#username").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "Logged In",  user: {attributes: {emailAddress:  email}}});
+                        }
+                    }),
+                        Evergage.listener("click", ".woocommerce-form-register__submit", () => {
+                        const newemail = Evergage.cashDom("#reg_email").val();
+                        if (newemail) {
+                            Evergage.sendEvent({ action: "User Registered",  user: {attributes: {emailAddress:  email}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="Article",
+                name: "News Article",
+                action: "News Article",
+                catalog: {
+                    Article: {
+                        _id: window.location.pathname.split("/")[3],
+                        name: Evergage.resolvers.fromMeta("og:title")(),
+                       imageUrl: Evergage.resolvers.fromMeta("og:image")(),
+                       categories: [Evergage.resolvers.buildCategoryId(".woocommerce-breadcrumb a",1,false)()],
+                        url: window.location.href,
+                        dimensions: {
+                            Brand: () => [Evergage.resolvers.fromMeta("brand")()],
+                            ContentClass: () => [Evergage.resolvers.fromMeta("content-class")()],
+                            ItemClass: () => [Evergage.resolvers.fromMeta("item")()],
+                            Style: () => [Evergage.resolvers.fromMeta("keywords")()],
+                            Demo: () => [Evergage.resolvers.fromMeta("demo")()]
+                        }
+                    }
+                },
+            },
+            {
+                isMatch: () => /\/category\/news\/*/.test(window.location.pathname),
+                name: "News Category",
+                action: "News Category",
+            },
+            {
+                isMatch: () => window.location.pathname === '/travel/',
+                name: "Travel Category Page",
+                action: "Travel Category Page",
+                contentZones: [
+                    {
+                        name: "Travel Category Page Recs",
+                        selector: "#travel_recs"
+                    },
+                    {
+                        name: "Travel Category Page Recs2",
+                        selector: "#travel_recs2"
+                    },
+                    {
+                        name: "Travel Category Page Loyalty",
+                        selector: "#travel_loyalty"
+                    },
+                    {
+                        name: "Travel Category Page Hero",
+                        selector: "#post-439 > div > div.wp-block-image"
+                    },
+                    {
+                        name: "Travel Category Page Popup",
+                        selector: "#travel-popup"
+                    },
+                ],
+            },
+            {
+                isMatch: () => window.location.pathname === '/abc-loyalty-club/',
+                name: "Loyalty Club",
+                action: "Loyalty Club",
+                contentZones: [
+                    {
+                        name: "Loyalty Club Recs",
+                        selector: "#loyalty_recs"
+                    },
+                    {
+                        name: "Loyalty Club Recs2",
+                        selector: "#loyalty_recs2"
+                    },
+                    {
+                        name: "Loyalty Club Member Infos",
+                        selector: "#loyalty_info"
+                    },
+                    {
+                        name: "Loyalty Club Reward Game",
+                        selector: "#loyalty_game"
+                    },
+                ],
+            },
+            {
+                isMatch: () => window.location.pathname === '/abc-newsletter/',
+                name: "ABC Newsletter",
+                action: "ABC Newsletter",
+                listeners: [
+                   Evergage.listener("click", "#00N5f00000GjwuH", () => {
+                        const email = Evergage.cashDom("#email").val();
+                        const phone = Evergage.cashDom("#mobile").val();
+                        const user_name = Evergage.cashDom("#first_name").val() + " " + Evergage.cashDom("#last_name").val();
+                        const firstname = Evergage.cashDom("#first_name").val();
+                        const lastname = Evergage.cashDom("#last_name").val();
+                        const brand = Evergage.cashDom("#00N5f00000gJDbj").val();
+                        if (email) {
+                            Evergage.sendEvent({ action: "ABC Newsletter Sign-Up",  user: {attributes: {emailAddress:  email, phone:  phone, userName: user_name, first_name: firstname, last_name: lastname, brand_interest: brand}}});
+                        }
+                    })
+                ]
+            },
+            {
+                isMatch: () => Evergage.resolvers.fromMeta("pagetype")()==="FAQ",
+                name: "FAQ",
+                action: "FAQ",
+                contentZones: [
+                {
+                    name: "FAQ Banner",
+                    selector: ".content-area"
+                }
+                ]
+            },
+            {
+                isMatch: () => window.location.pathname === "/thank-you/",
+                name: "Verify your Email",
+                action: "Verify your Email",
+            },
+            {
+                isMatch: () => window.location.pathname === "/thank-you-2/",
+                name: "Double Opt-In Email",
+                action: "Double Opt-In Email",
+            },
+            {
+                isMatch: () => true,
+                name: "Unknown Page",
+                action: "Unknown Page View"
+            }
+
+        ]
+    };
+
+  let siteBConfig = {
+    global: {},
+    pageTypeDefault: {
+      name: "default",
+    },
+    pageTypes: [
+      {
+        name: "Customer Service Portal - Home",
+        action: "Customer Service Portal - Home",
+        isMatch: () => window.location.pathname === "/abccustomerservice/s/",
+        contentZones: [
+                {
+                    name: "Customer Service Portal Home Hero Banner",
+                    selector: ".is-home-hero"
+                },
+                {
+                    name: "Customer Service Portal Home Recs 1",
+                    selector: ".is-home-recs-1"
+                },
+                {
+                    name: "Customer Service Portal Home Popup",
+                    selector: "#popup"
+                }
+        ]
+      },
+      {
+        name: "Customer Service Portal - My Preference Center",
+        action: "Customer Service Portal - My Preference Center",
+        isMatch: () => window.location.pathname === "/abccustomerservice/s/consent"
+      },
+      {
+        name: "Customer Service Portal - Login Page",
+        action: "Customer Service Portal - Login Page",
+        isMatch: () => window.location.pathname === "/abccustomerservice/s/login/",
+        listeners: [
+          Evergage.listener("click", "#centerPanel > div > div.slds-col--padded.contentRegion.comm-layout-column > div > div:nth-child(2) > div > div:nth-child(4) > button", (event) => {
+            const email = Evergage.cashDom("input[placeholder='Username']").val();
+            if (email) {
+              Evergage.sendEvent({
+                action: "Customer Service Portal - Login Successful",
+                user: { attributes: { emailAddress: email } },
+              });
+            }
+          }),
+        ],
+      },
+    ],
+  };
+
+  if (currentCookieDomain === "abc-demo.cloud") {
+    Evergage.initSitemap(siteAConfig);
+  } else if (currentCookieDomain === "abc-demo.my.site.com") {
+    var evgCurrentUrl = '';
+var evgIterator = 0;
+
+var evgUrlTimer = setInterval(_ => {
+    if(window.location.href !== evgCurrentUrl){
+        if(evgIterator++ < (evgCurrentUrl ? 10 : 20)){
+            console.log("SPA page refresh. Waiting for the url to stabilize..." + evgIterator);
+        }
+        else{
+            evgIterator = 0;
+            evgCurrentUrl = window.location.href;
+            Evergage.initSitemap(siteBConfig);
+            console.log("SPA page refresh. Reinitializing IS...");
+        }
+    }
+}, 100);
+  }
+});
