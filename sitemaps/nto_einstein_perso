@@ -1,0 +1,361 @@
+/** Enable detailed client-side console logging. Do not use in Prod environment! */
+SalesforceInteractions.setLoggingLevel(100);
+
+
+/** START: Quick consent management shortcut. Do not use in Prod environment!  */
+SalesforceInteractions.updateConsents({
+    purpose: SalesforceInteractions.ConsentPurpose.Tracking,
+    provider: "Example Consent Manager",
+    status: SalesforceInteractions.ConsentStatus.OptIn
+});
+
+document.addEventListener(
+    SalesforceInteractions.CustomEvents.OnSetAnonymousId, () => {
+        SalesforceInteractions.sendEvent({
+            user: {
+                attributes: {
+                    eventType: 'identity'
+                }
+            }
+        })
+    }
+);
+
+/** END: Quick consent management shortcut. Do not use in Prod environment!  */    
+
+function renderBannerHeader(attributes) {
+    if (!attributes || Object.keys(attributes).length == 0) {
+        return;
+    }
+    const elem = document.createElement("div")
+    elem.classList.add("banner-carousel-wrapper")
+    elem.innerHTML = `<div class="banner-carousel-wrapper">
+
+    <div>
+    <img src="${attributes.BackgroundImageUrl}" alt="mascots" width="auto" height="auto">
+    <h1 class="banner-heading h1 font-weight-bold pb-2" style="color: #000080
+    "><strong>${attributes.Header}</strong></h1>
+    </div>
+    <div class="banner-subheading h4 pb-2" style="color: #000080">
+                                            <h4>${attributes.Subheader}</h4>
+    </div>
+
+    <a href="${attributes.CallToActionUrl}" style="color: #fff; background-color:#000080; padding: .5rem; text-decoration: none; margin: 1rem;"
+    class="btn btn-primary btn-lg" tabindex="-1">
+    ${attributes.CallToActionText}
+</a>
+
+    </div>      
+    </div>`
+    document.querySelector(".banner-carousel-wrapper").innerHTML = elem.innerHTML
+}
+
+
+function renderProductRecs(data) {
+    if (!data || Object.keys(data).length == 0) {
+        return;
+    }
+    const elem = document.createElement("div")
+    elem.classList.add("product-recs")
+    elem.innerHTML = `<div class="product-recs">
+    <div>
+   	<img src="${data[0].Image_URL__c}" alt="prodRecs" width="100px" height="100px">
+    </div>
+    <div>
+    <a class="link" href="${data[0].Product_URL__c}" style="color: #000; padding: .5rem; text-decoration: none; margin: 1rem;"
+        tabindex="-1">${data[0].Name__c}</a>
+    </div>
+
+    <div class="price">${data[0].Unit_Price__c}</div> 
+
+    <div>
+    <img src="${data[1].Image_URL__c}" alt="prodRecs" width="100px" height="100px">
+ </div>
+ <div>
+ <a class="link" href="${data[1].Product_URL__c}" style="color: #000; padding: .5rem; text-decoration: none; margin: 1rem;"
+     tabindex="-1">${data[1].Name__c}</a>
+ </div>
+
+ <div class="price">${data[1].Unit_Price__c}</div> 
+
+
+ <div>
+ <img src="${data[2].Image_URL__c}" alt="prodRecs" width="100px" height="100px">
+</div>
+<div>
+<a class="link" href="${data[2].Product_URL__c}" style="color: #000; padding: .5rem; text-decoration: none; margin: 1rem;"
+  tabindex="-1">${data[2].Name__c}</a>
+</div>
+
+<div class="price">${data[2].Unit_Price__c}</div> 
+
+
+
+    </div>`
+    document.querySelector(".recs").innerHTML = elem.innerHTML
+}
+
+SalesforceInteractions
+    .init({
+ personalization: {
+    dataspace: "default",
+  },
+    })
+    .then(() => {
+        console.log('Data Cloud Sitemap Loaded')
+   
+  SalesforceInteractions.setLoggingLevel('debug')
+    const {
+        cashDom,
+        listener,
+        resolvers,
+        sendEvent,
+        util,
+        CatalogObjectInteractionName
+    } = SalesforceInteractions
+  
+    let IsPDP = false; // Initialize IsPDP to false before the loop
+    let ItemName = 'default'
+    let ItemPrice = '0.00'
+    let ImageUrl = 'default'
+    let imageElement = document.querySelector('.img-fluid');
+    let ItemURL = 'default'
+    let ItemSKU = '0'
+
+    //Loop to find view_item event in dataLayer in NTO; note that a Promise listener may be needed if the dataLayer does not show up on time
+    for (let i = 1; i <= 20; i++) {
+      if (window?.dataLayer[i]?.[1] === 'view_item') {
+        IsPDP = true;
+        ItemName = window?.dataLayer[i]?.[2].page_title;
+        ItemPrice = Number(window?.dataLayer[i]?.[2]?.items[0].price);
+        ImageUrl = imageElement.src;
+        ItemURL = window?.dataLayer[i]?.[2].page_location;
+        ItemSKU = window?.dataLayer[i]?.[2]?.items[0].item_id;
+        break; // Exit the loop if found a dataLayer value called view_item
+      }
+    }
+
+   //Defining global constants for use throughout the sitemap
+   const url = window.location.href
+   const urlPath = window.location.pathname
+   const queryString = window.location.search; //Returns all values after the ? mark in the URL
+   const urlParams = new URLSearchParams(queryString); //Returns value from URL parameters
+   const email = urlParams.get('email'); //Returns the value of parameter
+   const phone = urlParams.get('phone'); //Returns the value of parameter
+   const fname = urlParams.get('fname'); //Returns the value of parameter
+   const lname = urlParams.get('lname'); //Returns the value of parameter
+   
+   function getNewSKU() {
+    const pattern = /-(\w+)\.html$/;
+    const match = ItemURL.match(pattern);
+    return match && match[1] || '0';
+  }
+    const newSKU = getNewSKU();
+
+   //This section allows input of URL parameter fname, lname, email to create Identity record
+   if (email) { //Checks for the presence of email parameter
+    SalesforceInteractions.sendEvent({ //send to contactPointEmail
+            interaction: {
+                name: 'ContactPointEmail_capture' //Optional parameter for the DC Web SDK, unlike MCP
+            },
+            user: {
+            // The identity record is written for email only capture to ensure the record writes to Individual   
+                attributes: {
+                    email: email,
+                    eventType: 'contactPointEmail' //Defines the DLO to send to
+                }
+            }
+        });
+    SalesforceInteractions.sendEvent({ //send to identity
+            interaction: {
+                name: 'Identity_capture' //Optional parameter for the DC Web SDK, unlike MCP
+            },
+            user: {
+            // The identity record is written for email only capture to ensure the record writes to Individual   
+                attributes: {
+                    email: email || '',
+                    firstName: fname || '',
+                    lastName: lname || '',
+                    eventType: 'identity', //Defines the DLO to send to
+                    isAnonymous: 0 //REQUIRED - Without this flag, the identity write would fail
+                }
+            }
+        });
+    };      
+
+//This section allows input of URL parameter fname, lname, phone to create Identity record
+if (phone) { //Checks for the presence of phone parameter
+    SalesforceInteractions.sendEvent({
+            interaction: {
+                name: 'ContactPointPhone_capture' //Optional parameter for the DC Web SDK, unlike MCP
+            },
+            user: {
+            // The identity record is written for email only capture to ensure the record writes to Individual   
+                attributes: {
+                    phoneNumber: phone,
+                    eventType: 'contactPointPhone' //Defines the DLO to send to
+                }
+            }
+        });
+    SalesforceInteractions.sendEvent({
+            interaction: {
+                name: 'Identity_capture' //Optional parameter for the DC Web SDK, unlike MCP
+            },
+            user: {
+            // The identity record is written for email only capture to ensure the record writes to Individual   
+                attributes: {
+                    phoneNumber: phone || '',
+                    firstName: fname || '',
+                    lastName: lname || '',
+                    eventType: 'identity', //Defines the DLO to send to
+                    isAnonymous: 0
+                }
+            }
+        });
+};
+
+
+   // code that should continue executing regardless of match
+
+
+        const config = {
+            pageTypes: [
+              {
+       			name: "Homepage",
+                isMatch: () => window.location.pathname === '/en_US/homepage', 
+                   interaction: {
+                    name: 'Viewed Homepage', 
+                    eventType: 'browse', 
+                    pageName: 'Homepage',
+                    pageType: 'Homepage',
+                    pageUrl: url,
+                    pageView: '1'
+                    },      
+                onActionEvent: (event) => {
+                    SalesforceInteractions.Personalization.fetch(["Homepage_Hero"]).then(
+                    (pspResponse) => {
+                    renderBannerHeader(pspResponse.personalizations[0].attributes)
+                    console.log("Personalization Response", pspResponse)
+                    });
+                    return event;
+                    },
+            },
+            {
+            name: "Product Page",
+            isMatch: () =>
+            new Promise((resolve, reject) => {
+                let isMatchPDP = setTimeout(() => {
+                resolve(false);
+                }, 50);
+                return SalesforceInteractions.DisplayUtils.pageElementLoaded(
+                "div.page[data-action='Product-Show']",
+                "html",
+                ).then(() => {
+                clearTimeout(isMatchPDP);
+                console.log("Product Page Loaded", isMatchPDP);
+                resolve(true);
+                });
+                
+            }),                    
+            interaction: {
+                name: SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject, 
+                catalogObject: {
+                    type: "Product",
+                    id: newSKU
+                    },
+                },
+                listeners: [
+                    //Add to Cart button listener
+                    listener('click', '.flex-grow-1', (event) => {
+                        console.log('Add-to-cart clicked')
+                        console.log(ItemSKU)
+                        let ItemQuantityStg = function getSelectedValue() {
+                            // Select the option element with the selected attribute
+                            const selectedElement = document.querySelector('option[selected=""]');
+                            // Return the value of the selected element, or null if not found
+                            return selectedElement ? selectedElement.value : null;
+                        }
+                        let ItemQuantity = Number(ItemQuantityStg())
+                        if (ItemSKU) {
+                            sendEvent({
+                                interaction: {
+                                    name: SalesforceInteractions.CartInteractionName.AddToCart,
+                                    lineItem: {
+                                        catalogObjectType: "Product",
+                                        catalogObjectId: newSKU,
+                                        quantity: ItemQuantity,
+                                        price: ItemPrice,
+                                        currency: "USD"
+                                    }
+                                }
+                            })
+                        }
+                    }),
+                    //Favorites button converted to buy item listener; clicking the favorites button on PDP will purchase 1 product
+                    listener('click', '.ml-1', (event) => {
+                        console.log('Favorite purchase button clicked')
+                        console.log(ItemSKU)
+                        let ItemQuantityStg = function getSelectedValue() {
+                            // Select the option element with the selected attribute
+                            const selectedElement = document.querySelector('option[selected=""]');
+                            // Return the value of the selected element, or null if not found
+                            return selectedElement ? selectedElement.value : null;
+                        }
+                        let ItemQuantity = Number(ItemQuantityStg())
+                        if (ItemSKU) {
+                            sendEvent({
+                                interaction: {
+                                    name: SalesforceInteractions.OrderInteractionName.Purchase,
+                                    order: {
+                                        id: ItemSKU,
+                                        totalValue: ItemPrice,
+                                        currency: "USD",
+                                        lineItems: [{
+                                            catalogObjectType: 'Product',
+                                            catalogObjectId: newSKU,
+                                            quantity: 1,
+                                            price: ItemPrice,
+                                        }]
+                                    }
+                                }
+                            })
+                        }
+                    })
+                ] //Here you can apply listeners for clicks and html changes
+            },
+            {
+                name: 'Women',
+                isMatch: () => {
+                    return window.location.pathname.split('/')[2].split('-').includes('women')
+                },
+                interaction: {
+                    name: SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject,
+                    catalogObject: {
+                        type: 'Page',
+                        id: 'Women',
+                    }
+                },
+                listeners: []    
+            },
+            {
+                name: 'Men',
+                isMatch: () => {
+                    return window.location.pathname.split('/')[2].split('-').includes('men')
+                },
+                interaction: {
+                    name: SalesforceInteractions.CatalogObjectInteractionName.ViewCatalogObject,
+                    catalogObject: {
+                        type: 'Page',
+                        id: 'Men',
+                    }
+                },
+                listeners: []    
+            }
+     ],
+            pageTypeDefault: {
+                name: "Default"
+            }
+        };
+
+        SalesforceInteractions.initSitemap(config);
+    });
