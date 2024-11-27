@@ -1,0 +1,760 @@
+console.log("Demo sitemap: 27.11.24.v1 + EP");
+
+try{
+
+   SalesforceInteractions.Personalization.Config.initialize({
+        additionalTransformers: [{
+            name: "SimpleRecs",
+            transformerType: "Handlebars",
+            lastModifiedDate: new Date().getTime() - (1000 * 60 * 60 * 36),
+            substitutionDefinitions: {
+                recs: { defaultValue: '[data]' },
+                image: { defaultValue: '[Image_Link__c]' },
+                name: { defaultValue: '[ssot__Name__c]' },
+                price: { defaultValue: '[UnitPrice__c]' }
+            },
+
+            transformerTypeDetails: {
+                html: `
+                    <style>
+                        .sfdcep-recs-carousel { 
+                            width: 100%;
+                            max-width: 1440px !important;
+                            margin: 0px auto;
+                            display: flex; 
+                            justify-content: space-evenly;
+                            flex-flow: row wrap;
+                            padding: 20px 0px !important;
+                        }
+                    
+                        .sfdcep-recs-item {
+                            margin: 0 !important;
+                            width: 25%;
+                            min-width: 250px;
+                    
+                            color: #393939;
+                            font-family: Arial, Helvetica, sans-serif;
+                            font-size: 15px;
+                        }
+                    
+                        .sfdcep-recs-item-img {
+                            text-align: center;
+                        }
+                    
+                        .sfdcep-recs-item-img img {
+                            width: 90%;
+                            max-height: 320px;
+                            max-width: 320px;
+                        }
+                    
+                        .sfdcep-recs-item-name {
+                            padding-top: 10px;
+                        }
+                    
+                        .sfdcep-recs-item-name a{
+                            color: #393939;
+                            text-decoration: none;
+                            font-weight: 600;
+                        }
+                    
+                        .sfdcep-recs-item-price {
+                            padding-top: 10px;
+                        }
+                    
+                        .sfdcep-recs-item-rating {
+                            color: #097fb3;
+                            letter-spacing: 3px;
+                            padding-top: 10px;
+                        }
+                    </style>
+                    
+                    
+                    <div class="sfdcep-recs-carousel">
+                        {{#each (subVar 'recs')}}
+                        <div class="sfdcep-recs-item" >
+                            <div class="sfdcep-recs-item-img">
+                                {{#if (subVar 'image')}}
+                                    <img src="{{subVar 'image'}}" />
+                                {{else}}
+                                    <img src="https://placehold.co/320x320/white/blue?text=*" />
+                                {{/if}}
+                            </div>
+                    
+                            <div class="sfdcep-recs-item-name">
+                                <a href="#">{{subVar 'name'}}</a>
+                            </div>
+                    
+                            <div class="sfdcep-recs-item-price">
+                                {{#if (subVar 'price')}}
+                                    $ {{subVar 'price'}}
+                                {{else}}
+                                    Out-of-stock
+                                {{/if}}
+                            </div>
+                    
+                            <div class="sfdcep-recs-item-rating"> ★★★★★ </div>
+                        </div>
+                        {{/each}}
+                    </div>
+                `
+            }
+        },
+        {
+            name: "SimpleHero",
+            transformerType: "Handlebars",
+            lastModifiedDate: new Date().getTime() - (1000 * 60 * 60 * 36),
+    
+            substitutionDefinitions: {
+                BackgroundImageUrl: { defaultValue: '[attributes].[BackgroundImageUrl]' },
+                Header: { defaultValue: '[attributes].[Header]' },
+                Subheader: { defaultValue: '[attributes].[Subheader]' },
+                CallToActionUrl: { defaultValue: '[attributes].[CallToActionUrl]' },
+                CallToActionText: { defaultValue: '[attributes].[CallToActionText]' }
+            },
+
+            transformerTypeDetails: {
+                html: `
+                    <style>
+                        .sfdcep-banner {
+                            margin: 0px auto;
+                            width: 100%;
+                            //  max-width: 1440px !important; 
+                            min-height: 600px;
+                            display: flex;
+                            flex-flow: column wrap;
+                            justify-content: center;
+                            font-family: Arial, Helvetica, sans-serif;
+                        } 
+        
+                        .sfdcep-banner-header {
+                            font-size: 32px;
+                            padding-bottom: 40px;
+                            font-weight: 600;
+                            color: #DDDDDD;
+                            text-align: center;
+                        }    
+        
+                        .sfdcep-banner-subheader {
+                            font-size: 20px;
+                            font-weight: 400;
+                            color: #DDDDDD;
+                            text-align: center;
+                            padding-bottom: 40px;
+                        } 
+        
+                        .sfdcep-banner-cta {
+                            text-align: center;
+                        }
+        
+                        .sfdcep-banner-cta a {
+                            padding: 10px 20px;
+                            display: inline-block;
+                            background-color: #097fb3;
+                            border-radius: 20px;
+                            color: #DDDDDD;
+                            text-decoration: none;
+                            font-weight: 400;
+                            font-size: 18px;
+                        }
+                    </style>
+        
+                    <div class="sfdcep-banner" style="background: url('{{subVar 'BackgroundImageUrl'}}') no-repeat top left;">
+                        <div class="sfdcep-banner-header">{{subVar 'Header'}}</div>
+                        <div class="sfdcep-banner-subheader">{{subVar 'Subheader'}}</div>
+                        <div class="sfdcep-banner-cta">
+                            <a href="{{subVar 'CallToActionUrl'}}">{{subVar 'CallToActionText'}}</a>
+                        </div>
+                    </div>
+                `
+            }
+        },
+        {
+            name: "SimpleOverlay",
+            transformerType: "Handlebars",
+            lastModifiedDate: new Date().getTime() - (1000 * 60 * 60 * 36),
+            // 36 hours ago
+    
+            substitutionDefinitions: {
+                BackgroundImageUrl: { defaultValue: '[attributes].[BackgroundImageUrl]' },
+                Header: { defaultValue: '[attributes].[Header]' },
+                Subheader: { defaultValue: '[attributes].[Subheader]' },
+                CallToActionUrl: { defaultValue: '[attributes].[CallToActionUrl]' },
+                CallToActionText: { defaultValue: '[attributes].[CallToActionText]' }
+            },
+            transformerTypeDetails: {
+                html: `
+                    <style>
+                        .sfdcep-overlay {
+                            background-color: rgba(0,0,0,0.7);
+                            position: fixed;
+                            top: 0;
+                            bottom: 0;
+                            left: 0;
+                            right: 0;
+                            z-index: 256;
+                        }
+        
+                        .sfdcep-overlay-banner {
+                            margin: 0px auto;
+                            margin-top: 256px;
+                            width: 500px;
+                            height: 500px;
+                            background-color: white;
+                            display: flex;
+                            flex-flow: column wrap;
+                            justify-content: center;
+                            font-family: Arial, Helvetica, sans-serif;
+                        }
+        
+                        .sfdcep-overlay-header {
+                            font-size: 32px;
+                            padding-bottom: 40px;
+                            font-weight: 600;
+                            color: #DDDDDD;
+                            text-align: center;
+                        }
+        
+                        .sfdcep-overlay-subheader {
+                            font-size: 20px;
+                            font-weight: 400;
+                            color: #DDDDDD;
+                            text-align: center;
+                            padding-bottom: 40px;
+                        }
+        
+                        .sfdcep-overlay-cta {
+                            text-align: center;
+                        }
+        
+                        .sfdcep-overlay-cta a {
+                            padding: 10px 20px;
+                            display: inline-block;
+                            background-color: #097fb3;
+                            border-radius: 20px;
+                            color: #DDDDDD;
+                            text-decoration: none;
+                            font-weight: 400;
+                            font-size: 18px;
+                        }
+                    </style>
+                    <div class="sfdcep-overlay" onclick="document.body.removeChild(document.querySelector('.sfdcep-overlay'))">
+                        <div class="sfdcep-overlay-banner" style="background: url('{{subVar 'BackgroundImageUrl'}}') no-repeat top left;">
+                            <div class="sfdcep-overlay-header">{{subVar 'Header'}}</div>
+                            <div class="sfdcep-overlay-subheader">{{subVar 'Subheader'}}</div>
+                            <div class="sfdcep-overlay-cta">
+                                <a href="{{subVar 'CallToActionUrl'}}">{{subVar 'CallToActionText'}}</a>
+                            </div>
+                        </div>
+                    </div>
+                `
+            }
+        },
+        ],
+        personalizationExperienceConfigs: [
+  {
+    name: "MR_test_simplehero",
+    dataProvider: {
+      type: "PersonalizationPoint",
+      referenceType: "ApiName",
+      value: "MR_test_simplehero",
+    },
+    sourceMatchers: [
+      {
+        type: "PageType",
+        value: "default",
+      },
+    ],
+    transformationConfig: {
+      when: "Immediately",
+      method: "ReplaceElementContent",
+      transformations: [
+        {
+          transformerName: "SimpleHero",
+          path: "#et_builder_outer_content > div > div > div.et_pb_section.et_pb_section_0.et_pb_with_background.et_section_regular.et_section_transparent",
+          tag: "DIV",
+        },
+      ],
+    },
+    lastModifiedDate: 1728050496321,
+  },
+  {
+    name: "MR_test_simpleRecs",
+    dataProvider: {
+      type: "PersonalizationPoint",
+      referenceType: "ApiName",
+      value: "MR_test_simpleRecs",
+    },
+    sourceMatchers: [
+      {
+        type: "PageType",
+        value: "default",
+      },
+    ],
+    transformationConfig: {
+      when: "Immediately",
+      method: "ReplaceElementContent",
+      transformations: [
+        {
+          transformerName: "SimpleRecs",
+          path: "#et_builder_outer_content > div > div > div.et_pb_section.et_pb_section_2.et_pb_with_background.et_section_regular.et_section_transparent > div > div > div > div > p.is-home-recs-2 > section > div",
+          tag: "DIV",
+        },
+      ],
+    },
+    lastModifiedDate: 1728050496321,
+  },
+]
+
+    });
+} catch (error) {
+  console.error(error);
+}
+
+
+document.addEventListener(SalesforceInteractions.CustomEvents.OnEventSend, (e) => {
+      sendMessage('abc-interaction', SalesforceInteractions.getAnonymousId(), JSON.stringify(e.detail.actionEvent));
+});
+
+
+// Helper for CCS Selectoren Add to Cart
+const getSpecificSelectorByClass = (className) => {
+  const element = document.querySelector(`.${className.replace(/ /g, ".")}`);
+
+  if (!element) {
+    return null;
+  }
+
+  const getDetailedSelector = (element) => {
+    if (element.id) {
+      return `#${element.id}`;
+    }
+
+    const path = [];
+    while (element && element.nodeType === Node.ELEMENT_NODE) {
+      let selector = element.nodeName.toLowerCase();
+      if (element.id) {
+        selector += `#${element.id}`;
+        path.unshift(selector);
+        break;
+      } else {
+        let sib = element,
+          nth = 1;
+        while ((sib = sib.previousElementSibling)) {
+          if (sib.nodeName.toLowerCase() === selector) nth++;
+        }
+        if (nth !== 1) selector += `:nth-of-type(${nth})`;
+      }
+      path.unshift(selector);
+      element = element.parentNode;
+    }
+
+    return path.join(" > ");
+  };
+
+  return getDetailedSelector(element);
+};
+// Helper for Quick buy button
+
+const getButtonValueByClass = (className) => {
+  const button = document.querySelector(`.${className.replace(/ /g, ".")}`);
+  return button ? button.getAttribute("value") : null;
+};
+// Set logging level in console
+SalesforceInteractions.setLoggingLevel("debug");
+
+/*
+const getCookieDomain = () => {
+    let currentDomain = window.location.hostname;
+    if (currentDomain === "abc-demo.cloud") {
+      return "abc-demo.cloud";
+    } else if (currentDomain === "abc-demo.my.site.com") {
+      return "abc-demo.my.site.com";
+    }
+  };
+  const currentCookieDomain = getCookieDomain();
+console.log(currentCookieDomain)
+
+*/
+
+
+  SalesforceInteractions.init({
+    consents: [
+      {
+        provider: "Provider",
+        purpose: "Tracking",
+        status: "Opt In",
+      },
+    ],
+    personalization:{
+      dataspace: "default"
+    }
+    
+   ,
+  }).then(
+    () => {
+      const {
+        cashDom,
+        listener,
+        resolvers,
+        sendEvent,
+        util,
+        CartInteractionName,
+        CatalogObjectInteractionName,
+        OrderInteractionName,
+      } = SalesforceInteractions;
+
+      const global = {
+        locale: "de_DE",
+        listeners: [
+          // Profile Switcher
+          listener("click", "#wpforms-submit-891", (event) => {
+            const emailAddress = cashDom("#wpforms-891-field_2").val();
+            sendEvent({
+              interaction: {
+                name: "profileSwitched",
+              },
+              user: {
+                attributes: {
+                  email: emailAddress,
+                  eventType: "identity",
+                  isAnonymous: "False",
+                },
+              },
+            });
+          }),
+        ],
+        /*  
+      // attach optional data to every actionEvent that is sent out
+      onActionEvent: (actionEvent) => {
+        const email = window && window._userInfo && window._userInfo.email
+        if (email) {
+            actionEvent.user = actionEvent.user || {}
+            actionEvent.user.attributes = actionEvent.user.attributes || {}
+            actionEvent.user.attributes.emailAddress = email
+        }
+        return actionEvent
+      }
+      */
+      };
+
+      const productIdResolver = resolvers.fromSelector(".sku");
+      const cssSelcAddCart = "single_add_to_cart_button button alt";
+      const cssSelcAdd = getSpecificSelectorByClass(cssSelcAddCart);
+
+      const qBuyValue = getButtonValueByClass(
+        "single_add_to_cart_button button alt"
+      );
+      const qBuySelec = `#product-${qBuyValue} > div.summary.entry-summary > form > div.wsppc_div_block.woocommerce_after_add_to_cart_button > p > button`;
+
+      const productPage = {
+        name: "product",
+        isMatch: () => resolvers.fromMeta("pagetype")() === "PDP",
+        // capture the product being viewed when the page is opened
+        interaction: {
+          name: CatalogObjectInteractionName.ViewCatalogObject,
+          catalogObject: {
+            type: "Product",
+            id: productIdResolver,
+            /*
+          attributes: {
+            name: resolvers.fromMeta("og:title"),
+            url: resolvers.fromHref(),
+            imageUrl: resolvers.fromMeta("og:image")
+          },
+          */
+          },
+        },
+        listeners: [
+          // capture when the user adds this product to their cart
+          listener("click", cssSelcAdd, () => {
+            sendEvent({
+              interaction: {
+                name: CartInteractionName.AddToCart,
+                lineItem: {
+                  catalogObjectType: "Product",
+                  catalogObjectId: productIdResolver(),
+                  quantity: parseInt(
+                    cashDom(".product .quantity input").val(),
+                    10
+                  ),
+                  price: parseFloat(cashDom(".product .price").text().trim()),
+                },
+              },
+            });
+          }),
+
+          listener("click", qBuySelec, () => {
+            sendEvent({
+              interaction: {
+                name: OrderInteractionName.Purchase,
+                order: {
+                  id: window.location.pathname.split("/")[3],
+                  totalValue: parseFloat(
+                    cashDom(".product .price").text().trim()
+                  ), // auf website checken ,
+                  lineItems: [
+                    {
+                      catalogObjectType: "Product",
+                      catalogObjectId: productIdResolver(),
+                      price: parseFloat(
+                        cashDom(".product .price").text().trim()
+                      ),
+                      quantity: parseInt(
+                        cashDom(".product .quantity input").val(),
+                        10
+                      ),
+                    },
+                  ],
+                },
+              },
+            });
+          }),
+        ],
+      };
+
+      /*
+    const homePage = {
+      name: 'Home',
+      isMatch: ()=> window.location.href === 'https://abc-demo.cloud/', 
+    }
+    */
+      /*
+    const orderConfirmationPage = {
+      name: 'Order Configuration',
+      isMatch: ()=>/\/checkout\/order-received/.test(window.location.href),
+      // capture when a user completes an order
+      interaction: {
+        name: OrderInteractionName.Purchase,
+        order: {
+          id: window.location.pathname.split("/")[3],
+          totalValue: 100, // auf website checken ,
+          lineItems: {
+              catalogObjectType: 'Product',
+              catalogObjectId: () => {
+                return DisplayUtils.pageElementLoaded(".woocommerce-table__product-name.product-name > .wc-item-meta p", "html").then((ele) => {
+                    return resolvers.fromSelectorMultiple(".woocommerce-table__product-name.product-name > .wc-item-meta p");
+                });
+            },
+            price:  () => {
+                return DisplayUtils.pageElementLoaded("td.woocommerce-table__product-total.product-total > span > bdi", "html").then((ele) => {
+                    return resolvers.fromSelectorMultiple("td.woocommerce-table__product-total.product-total > span > bdi");
+                });
+            },
+              quantity: () => {
+                return DisplayUtils.pageElementLoaded(".product-quantity", "html").then((ele) => {
+                    return resolvers.fromSelectorMultiple(".product-quantity");
+                });
+            },
+        }
+        }
+      }
+    }
+  */
+
+      const loginPage = {
+        name: "Login Page",
+        isMatch: () => window.location.pathname === "/my-account/",
+        listeners: [
+          // captures user infos
+          listener("click", ".woocommerce-form-login__submit", (event) => {
+            const emailAddress = cashDom("#username").val();
+            sendEvent({
+              interaction: {
+                name: "userLogin",
+              },
+              user: {
+                attributes: {
+                  email: emailAddress,
+                  eventType: "identity",
+                  isAnonymous: "False",
+                },
+              },
+            });
+          }),
+          listener(
+            "click",
+            "#customer_login > div.u-column2.col-2 > form > p:nth-child(5) > button",
+            (event) => {
+              const emailAddress = cashDom("#reg_email").val();
+              sendEvent({
+                interaction: {
+                  name: "register",
+                },
+                user: {
+                  attributes: {
+                    email: emailAddress,
+                    eventType: "identity",
+                    isAnonymous: "False",
+                  },
+                },
+              });
+            }
+          ),
+        ],
+      };
+
+      const newsArticle = {
+        name: "News Article",
+        isMatch: () => resolvers.fromMeta("pagetype")() === "Article",
+        interaction: {
+          name: CatalogObjectInteractionName.ViewCatalogObject,
+          catalogObject: {
+            type: "Article",
+            id: window.location.pathname.split("/")[3],
+          },
+        },
+      };
+
+      const newsletter = {
+        name: "ABC Newsletter",
+        isMatch: () => window.location.pathname === "/abc-newsletter/",
+        listeners: [
+          // captures us
+          listener(
+            "click",
+            "#post-515 > div > form > input.newsletter-sign-up",
+            (event) => {
+              const emailAddress = cashDom("#username").val();
+              const phone = cashDom("#mobile").val();
+              const firstname = cashDom("#first_name").val();
+              const lastName = cashDom("#last_name").val();
+              sendEvent({
+                interaction: {
+                  name: "ABC Newsletter Sign-Up",
+                },
+                user: {
+                  attributes: {
+                    email: emailAddress,
+                    eventType: "identity",
+                    firstName: firstname,
+                    lastName: lastName,
+                    phoneNumber: phone,
+                    isAnonymous: "False",
+                  },
+                },
+              });
+            }
+          ),
+        ],
+      };
+      /*
+    const customerServicePortal = {
+        name: 'Customer Service Portal - Login Page"',
+        isMatch: () => window.location.pathname === "/abccustomerservice/s/login/",
+        listeners: [
+            listener('click', '#centerPanel > div > div.slds-col--padded.contentRegion.comm-layout-column > div > div:nth-child(2) > div > div:nth-child(4) > button', (event) => {
+              const emailAddress = cashDom("input[placeholder='Username']").val();
+              sendEvent({
+                interaction: {
+                    name: 'Customer Service Portal - Login Successful'
+                },
+                user:{
+                    attributes: {
+                        email: emailAddress,
+                        eventType: 'contactPointEmail',
+                    }
+                }
+
+              })
+            })
+          ]
+        
+    }
+  */
+      /*
+    const checkoutPage = {
+        name: 'Checkout Page',
+        isMatch: ()=>/\/checkout/.test(window.location.href),
+      }
+    */
+      const productCategory = {
+        name: "Product Category",
+        isMatch: () => resolvers.fromMeta("pagetype")() === "PLP",
+        interaction: {
+          name: CatalogObjectInteractionName.ViewCatalogObject,
+          catalogObject: {
+            type: "Product Category",
+            id: resolvers.fromSelector("#main > header > h1"),
+          },
+        },
+        /*
+        listeners: [
+          listener('click', cssSelcAdd, () => {
+            sendEvent({
+              interaction: {
+                name: CartInteractionName.AddToCart,
+                lineItem: {
+                  catalogObjectType: 'Product',
+                  catalogObjectId: productIdResolver(),
+                  quantity: parseInt(cashDom('.product .quantity input').val(), 10),
+                  price: parseFloat(cashDom('.product .price').text().trim())
+                }
+              }
+            })
+          })
+        ]
+          */
+      };
+
+      const newsCategory = {
+        name: "News Category",
+        isMatch: () => /\/category\/news\/*/.test(window.location.pathname),
+        interaction: {
+          name: CatalogObjectInteractionName.ViewCatalogObject,
+          catalogObject: {
+            type: "Article Category",
+            id: resolvers.fromSelector("#main > header > h1 > span"),
+          },
+        },
+      };
+      /*
+    const customerServicePortalMyPrCe = {
+        name: 'Customer Service Portal - My Preference Center',
+        isMatch: () => window.location.pathname === "/abccustomerservice/s/consent"
+      }  
+    */
+      const pageTypeDefault = {
+        name: "default",
+      };
+
+      SalesforceInteractions.initSitemap({
+        global,
+        pageTypeDefault,
+        pageTypes: [
+          loginPage,
+          newsArticle,
+          // orderConfirmationPage,
+          productPage,
+          // homePage,
+          newsletter,
+          // checkoutPage,
+          // customerServicePortal,
+          productCategory,
+          newsCategory,
+          // customerServicePortalMyPrCe
+        ],
+      });
+      console.log("sitemap initialized");
+    },
+    { once: true }
+  );
+
+function sendMessage(mid, cid, payload){
+  const url = 'https://abc-proxy-2552551e6d2c.herokuapp.com/https://abc24.my.salesforce-sites.com/public/services/apexrest/demoping/';
+  const data = {
+      "mid": mid,
+      "cid": cid,
+      "event": payload
+  };
+  console.log("[tb-debug] data for event send is: " + JSON.stringify(data));
+  fetch(url, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+  })
+  .then(response => response.json()) // parses JSON response into native JavaScript objects
+  .then(data => console.log(data))
+  .catch(error => console.error('Error:', error.message));
+}
